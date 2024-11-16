@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #6A0DAD;
+  --secondary-color: #9A4DFF;
+  --accent-color: #39FF14;
+  --background-color: #F0F0F0;
+}
+body {
+  font-family: 'Poppins', sans-serif;
+}
+@layer components {
+  .btn-primary {
+    @apply bg-purple-700 text-white font-bold py-2 px-4 rounded hover:bg-purple-600 transition-colors duration-300;
+  }
+  .section-title {
+    @apply text-3xl font-bold text-purple-800 mb-6;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
