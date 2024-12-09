@@ -12,6 +12,7 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
   const [selectedCoin, setSelectedCoin] = useState(null);
   const COINS_PER_PAGE = 50;
   const [allCoins, setAllCoins] = useState([]);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [globalStats, setGlobalStats] = useState({
     totalMarketCap: 0,
     totalVolume: 0,
@@ -41,7 +42,7 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
       setLoading(true);
       try {
         const batchNumber = Math.ceil(page / 2);
-        const data = await getTopCoins(batchNumber, 100, currency);
+        const data = await getTopCoins(batchNumber, 100, currency.toLowerCase());
         
         const startIndex = ((page - 1) % 2) * 50;
         const endIndex = startIndex + 50;
@@ -284,11 +285,20 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
                       <span>{coin.name}</span>
                       <span className="ml-2 text-gray-500 uppercase">{coin.symbol}</span>
                     </td>
-                    <td className="px-4 py-2">{currentCurrency.symbol}{coin.current_price.toLocaleString()}</td>
+                    <td className="px-4 py-2">
+                      {currentCurrency.symbol}
+                      {Number(coin.current_price).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
+                    </td>
                     <td className={`px-4 py-2 ${coin.price_change_percentage_24h >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {coin.price_change_percentage_24h?.toFixed(2)}%
                     </td>
-                    <td className="px-4 py-2">{currentCurrency.symbol}{coin.market_cap.toLocaleString()}</td>
+                    <td className="px-4 py-2">
+                      {currentCurrency.symbol}
+                      {Number(coin.market_cap).toLocaleString()}
+                    </td>
                     <td className="px-4 py-2">
                       <button onClick={() => watchlist.includes(coin.id) ? removeFromWatchlist(coin.id) : addToWatchlist(coin.id)}>
                         <Star 

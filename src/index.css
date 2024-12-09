@@ -46,3 +46,17 @@ body {
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 20px;
+  }
+
+  .text-2xl {
+    font-size: 1.5rem; /* Adjust font size on smaller screens */
+  }
+
+  .grid-cols-3 {
+    grid-template-columns: repeat(1, 1fr); /* Stack grid items vertically on small screens */
+  }
+}

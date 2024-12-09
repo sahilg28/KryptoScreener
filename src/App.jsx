@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import HeroSection from './components/HeroSection';
 import CryptoTable from './components/CryptoTable';
@@ -9,41 +10,47 @@ import Watchlist from './components/Watchlist';
 import TrendingPage from './components/TrendingPage';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home');
   const [watchlist, setWatchlist] = useState([]);
 
-  const addToWatchlist = (coinId) => {
+  const addToWatchlist = useCallback((coinId) => {
     if (!watchlist.includes(coinId)) {
-      setWatchlist([...watchlist, coinId]);
+      setWatchlist(prev => [...prev, coinId]);
     }
-  };
+  }, []);
 
-  const removeFromWatchlist = (coinId) => {
-    setWatchlist(watchlist.filter(id => id !== coinId));
-  };
+  const removeFromWatchlist = useCallback((coinId) => {
+    setWatchlist(prev => prev.filter(id => id !== coinId));
+  }, []);
+
+  const HomePage = () => (
+    <>
+      <HeroSection />
+      <CryptoTable 
+        watchlist={watchlist} 
+        addToWatchlist={addToWatchlist} 
+        removeFromWatchlist={removeFromWatchlist} 
+      />
+      <FeaturesSection />
+      <SubscriptionSection />
+    </>
+  );
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header setCurrentPage={setCurrentPage} />
-      {currentPage === 'home' && (
-        <>
-          <HeroSection />
-          <CryptoTable 
-            watchlist={watchlist} 
-            addToWatchlist={addToWatchlist} 
-            removeFromWatchlist={removeFromWatchlist} 
-          />
-          <FeaturesSection />
-          <SubscriptionSection />
-        </>
-      )}
-      {currentPage === 'watchlist' && (
-        <Watchlist 
-          watchlist={watchlist} 
-          removeFromWatchlist={removeFromWatchlist} 
+      <Header />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route 
+          path="/watchlist" 
+          element={
+            <Watchlist 
+              watchlist={watchlist} 
+              removeFromWatchlist={removeFromWatchlist} 
+            />
+          } 
         />
-      )}
-      {currentPage === 'trending' && <TrendingPage />}
+        <Route path="/trending" element={<TrendingPage />} />
+      </Routes>
       <Footer />
     </div>
   );

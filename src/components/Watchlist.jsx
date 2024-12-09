@@ -23,12 +23,21 @@ function Watchlist({ watchlist, removeFromWatchlist }) {
     };
 
     if (watchlist.length > 0) {
-      fetchWatchlistCoins();
+      if (watchlistCoins.length === 0) {
+        fetchWatchlistCoins();
+      } else {
+        setWatchlistCoins(prev => prev.filter(coin => watchlist.includes(coin.id)));
+      }
     } else {
       setWatchlistCoins([]);
       setLoading(false);
     }
   }, [watchlist]);
+
+  const handleRemove = (coinId) => {
+    setWatchlistCoins(prev => prev.filter(coin => coin.id !== coinId));
+    removeFromWatchlist(coinId);
+  };
 
   if (loading) {
     return (
@@ -90,7 +99,7 @@ function Watchlist({ watchlist, removeFromWatchlist }) {
                   <td className="px-4 py-2">${coin.market_cap.toLocaleString()}</td>
                   <td className="px-4 py-2">
                     <button 
-                      onClick={() => removeFromWatchlist(coin.id)}
+                      onClick={() => handleRemove(coin.id)}
                       className="focus:outline-none hover:text-red-600 transition-colors"
                     >
                       <Star size={20} className="text-yellow-500 fill-current" />

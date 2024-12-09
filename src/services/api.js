@@ -35,11 +35,11 @@ export const getTopCoins = async (page = 1, perPage = 100, currency = 'inr', ret
   }
 };
 
-export const getCoinChart = async (id, days = 7, currency = 'usd') => {
+export const getCoinChart = async (id, days = 7, currency = 'inr') => {
   try {
     const response = await api.get(`/coins/${id}/market_chart`, {
       params: {
-        vs_currency: currency,
+        vs_currency: currency.toLowerCase(),
         days: days,
       },
     });
