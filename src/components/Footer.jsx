@@ -19,7 +19,7 @@ function Footer() {
       image: sahilImage,
       github: "https://github.com/sahilg28",
       linkedin: "https://www.linkedin.com/in/sahil-gupta-b7983a204/",
-      twitter: "https://x.com/seegee4720"
+      twitter: "https://x.com/sahilgupta_as"
     },
     {
       name: "Kritab",
