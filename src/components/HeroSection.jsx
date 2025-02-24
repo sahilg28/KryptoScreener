@@ -6,7 +6,7 @@ function HeroSection() {
   return (
     <section className="bg-gradient-to-r from-purple-800 to-purple-700 text-white py-20">
       <div className="container mx-auto px-4 flex flex-col md:flex-row items-center">
-        <div className="md:w-1/2 mb-10 md:mb-0 h-56 overflow-hidden">
+        <div className="md:w-1/2 mb-10 md:mb-0 h-60 overflow-hidden">
           <div className="h-20">
             <TypeAnimation
               sequence={[
@@ -26,7 +26,7 @@ function HeroSection() {
             />
           </div>
           
-          <p className="text-xl mt-10 text-gray-200">
+          <p className="text-xl mt-20 text-gray-200">
             Stay updated with live prices, market trends, and personalized alerts on your favorite crypto coins. <br />
             <span className='text-lg'>[Note: currency conversion is not implemented currently]</span>
           </p>
