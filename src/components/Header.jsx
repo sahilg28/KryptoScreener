@@ -8,8 +8,8 @@ function Header() {
   const navigate = useNavigate();
 
   return (
-    <header className="bg-white shadow-md">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+    <header className="bg-white shadow-md sticky top-0 z-10">
+      <div className="container mx-auto px-6 py-4 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-3">
           <img src={ksIcon} alt="KryptoScreener Logo" className="h-8 w-8 rounded-full" />
           <span className="text-2xl font-bold text-purple-700">KryptoScreener</span>

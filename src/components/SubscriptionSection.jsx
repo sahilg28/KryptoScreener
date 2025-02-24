@@ -15,9 +15,9 @@ function SubscriptionSection() {
   };
 
   return (
-    <section className="py-16 bg-gradient-to-r from-purple-700 to-purple-500 text-white">
+    <section className="py-12 bg-gradient-to-r from-purple-700 to-purple-500 text-white">
       <div className="container mx-auto px-4 text-center">
-        <Newspaper className="mx-auto mb-6 animate-bounce" size={48} />
+        <Newspaper className="mx-auto mb-6" size={48} />
         <h2 className="text-3xl font-bold mb-4">Join Our Crypto Community</h2>
         <p className="text-xl mb-8">
           Get weekly insights, market updates, and exclusive trading strategies straight to your inbox.

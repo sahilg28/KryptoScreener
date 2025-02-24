@@ -8,7 +8,7 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
   const [coins, setCoins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [currency, setCurrency] = useState('inr');
+  const [currency, setCurrency] = useState('usd');
   const [selectedCoin, setSelectedCoin] = useState(null);
   const COINS_PER_PAGE = 50;
   const [allCoins, setAllCoins] = useState([]);
@@ -23,8 +23,8 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
   useEffect(() => {
     const fetchAllCoinsForSearch = async () => {
       try {
-        const promises = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(page => 
-          getTopCoins(page, 100, currency)
+        const promises = [1, 2, 3, 4, 5].map(page => 
+          getTopCoins(page, 100, 'usd')
         );
         const results = await Promise.all(promises);
         const combinedCoins = results.flat();
@@ -35,7 +35,7 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
     };
 
     fetchAllCoinsForSearch();
-  }, [currency]);
+  }, []);
 
   useEffect(() => {
     const fetchCoins = async () => {
@@ -100,12 +100,11 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
   };
 
   const currencies = [
-    { value: 'inr', label: 'INR (₹)', symbol: '₹' },
     { value: 'usd', label: 'USD ($)', symbol: '$' },
+    { value: 'inr', label: 'INR (₹)', symbol: '₹' },
     { value: 'eur', label: 'EUR (€)', symbol: '€' },
     { value: 'aed', label: 'AED (د.إ)', symbol: 'د.إ' },
     { value: 'cad', label: 'CAD (C$)', symbol: 'C$' },
-    { value: 'gbp', label: 'GBP (£)', symbol: '£' },
   ];
 
   const currentCurrency = currencies.find(c => c.value === currency) || currencies[0];
@@ -188,6 +187,28 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
     return value.toFixed(2);
   };
 
+  const convertPrice = (priceInUSD, targetCurrency) => {
+    const conversionRates = {
+      'usd': 1,
+      'inr': 83.12,
+      'eur': 0.92,
+      'aed': 3.67,
+      'cad': 1.35
+    };
+    
+    if (currency === 'usd') return priceInUSD;
+    return priceInUSD * conversionRates[targetCurrency];
+  };
+
+  const renderPrice = (price) => {
+    if (!price) return `${currentCurrency.symbol}0.00`;
+    const convertedPrice = convertPrice(price, currency);
+    return `${currentCurrency.symbol}${Number(convertedPrice).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h2 className="section-title text-2xl font-semibold text-center mb-4">Explore the World of Cryptocurrencies</h2>
@@ -266,40 +287,37 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
             <table className="w-full table-auto">
               <thead>
                 <tr className="bg-purple-100">
-                  <th className="px-4 py-2">Rank</th>
-                  <th className="px-4 py-2">Coin</th>
-                  <th className="px-4 py-2">Price ({currentCurrency.symbol})</th>
-                  <th className="px-4 py-2">24h %</th>
-                  <th className="px-4 py-2">Market Cap ({currentCurrency.symbol})</th>
-                  <th className="px-4 py-2">Watchlist</th>
+                  <th className="px-4 py-2 text-left">Rank</th>
+                  <th className="px-4 py-2 text-left">Coin</th>
+                  <th className="px-4 py-2 text-right">Price ({currentCurrency.symbol})</th>
+                  <th className="px-4 py-2 text-right">24h %</th>
+                  <th className="px-4 py-2 text-right">Market Cap ({currentCurrency.symbol})</th>
+                  <th className="px-4 py-2 text-center">Watchlist</th>
                 </tr>
               </thead>
               <tbody>
                 {coins.map((coin, index) => (
                   <tr key={coin.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-2 text-left">
                       {searchTerm ? coin.market_cap_rank : (page - 1) * 50 + index + 1}
                     </td>
-                    <td className="px-4 py-2 flex items-center cursor-pointer" onClick={() => setSelectedCoin(coin)}>
-                      <img src={coin.image} alt={coin.name} className="w-6 h-6 mr-2" />
-                      <span>{coin.name}</span>
-                      <span className="ml-2 text-gray-500 uppercase">{coin.symbol}</span>
-                    </td>
                     <td className="px-4 py-2">
-                      {currentCurrency.symbol}
-                      {Number(coin.current_price).toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })}
+                      <div className="flex items-center cursor-pointer" onClick={() => setSelectedCoin(coin)}>
+                        <img src={coin.image} alt={coin.name} className="w-6 h-6 mr-2" />
+                        <span>{coin.name}</span>
+                        <span className="ml-2 text-gray-500 uppercase">{coin.symbol}</span>
+                      </div>
                     </td>
-                    <td className={`px-4 py-2 ${coin.price_change_percentage_24h >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <td className="px-4 py-2 text-right">
+                      {renderPrice(coin.current_price)}
+                    </td>
+                    <td className={`px-4 py-2 text-right ${coin.price_change_percentage_24h >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {coin.price_change_percentage_24h?.toFixed(2)}%
                     </td>
-                    <td className="px-4 py-2">
-                      {currentCurrency.symbol}
-                      {Number(coin.market_cap).toLocaleString()}
+                    <td className="px-4 py-2 text-right">
+                      {renderPrice(coin.market_cap)}
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-2 text-center">
                       <button onClick={() => watchlist.includes(coin.id) ? removeFromWatchlist(coin.id) : addToWatchlist(coin.id)}>
                         <Star 
                           size={20} 

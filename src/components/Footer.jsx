@@ -23,7 +23,7 @@ function Footer() {
     },
     {
       name: "Kritab",
-      role: "Documentation & Developer",
+      role: "Documentation",
       image: kritabImage,
       github: "https://github.com/Kritab2312/Kritab",
       linkedin: "https://www.linkedin.com/in/kritab-sharma-28759b326/"
@@ -31,7 +31,7 @@ function Footer() {
   ];
 
   return (
-    <footer className="bg-gradient-to-b from-purple-900 to-black text-white py-12">
+    <footer className="bg-gradient-to-b from-purple-900 to-black text-white py-8">
       <div className="container mx-auto px-4">
         <div className="mb-12">
           <h3 className="text-2xl font-semibold text-center mb-8">Team Members</h3>
