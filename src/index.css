@@ -26,6 +26,8 @@
 }
 body {
   font-family: 'Poppins', sans-serif;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 @layer components {
   .btn-primary {
