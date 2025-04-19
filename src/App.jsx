@@ -6,8 +6,8 @@ import CryptoTable from './components/CryptoTable';
 import FeaturesSection from './components/FeaturesSection';
 import SubscriptionSection from './components/SubscriptionSection';
 import Footer from './components/Footer';
-import Watchlist from './components/Watchlist';
-import TrendingPage from './components/TrendingPage';
+import Watchlist from './pages/Watchlist';
+import TrendingPage from './pages/TrendingPage';
 
 function App() {
   const [watchlist, setWatchlist] = useState([]);
