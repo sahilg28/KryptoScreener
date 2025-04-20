@@ -8,6 +8,7 @@ import SubscriptionSection from './components/SubscriptionSection';
 import Footer from './components/Footer';
 import Watchlist from './pages/Watchlist';
 import TrendingPage from './pages/TrendingPage';
+import UpOrDown from './pages/upordown';
 
 function App() {
   const [watchlist, setWatchlist] = useState([]);
@@ -50,6 +51,7 @@ function App() {
           } 
         />
         <Route path="/trending" element={<TrendingPage />} />
+        <Route path="/upordown" element={<UpOrDown />} />
       </Routes>
       <Footer />
     </div>

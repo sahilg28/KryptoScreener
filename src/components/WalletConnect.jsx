@@ -1,216 +1,187 @@
-import { useState, useEffect } from 'react';
-import { ethers } from 'ethers';
-import { Wallet } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
+import { setWalletPublicKey } from '../store/slices/walletSlice';
 
-// Local storage keys
-const WALLET_ADDRESS_KEY = 'walletAddress';
-const AUTH_TOKEN_KEY = 'authToken';
-
-// Generate a random nonce for message signing
-const generateNonce = () => {
-  return `Authentication request ${Math.floor(Math.random() * 1000000)}`;
-};
-
-const WalletConnect = () => {
-  const [account, setAccount] = useState(() => {
-    return localStorage.getItem(WALLET_ADDRESS_KEY) || '';
-  });
+function WalletConnect() {
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isSigning, setIsSigning] = useState(false);
-  const [error, setError] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return !!localStorage.getItem(AUTH_TOKEN_KEY);
-  });
-
-  const checkMetaMaskAvailability = () => {
-    return typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
-  };
-
-  const shortenAddress = (address) => {
-    if (!address) return '';
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
-
-  const connectWallet = async () => {
-    if (!checkMetaMaskAvailability()) {
-      setError('Please install MetaMask!');
-      return;
-    }
-
-    try {
-      setIsConnecting(true);
-      setError('');
-
-      // Request MetaMask connection
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      
-      // First try to get existing accounts
-      let accounts = await provider.listAccounts();
-      
-      // If no accounts or not connected, request connection
-      if (!accounts.length) {
-        accounts = await window.ethereum.request({
-          method: 'eth_requestAccounts',
-        });
-      }
-      
-      if (accounts.length > 0) {
-        const address = accounts[0];
-        setAccount(address);
-        localStorage.setItem(WALLET_ADDRESS_KEY, address);
-        
-        // Proceed with authentication after connection
-        await authenticateWallet(address, provider);
-      } else {
-        throw new Error('No accounts found');
-      }
-    } catch (err) {
-      console.error('Wallet connection error:', err);
-      setError(err.message === 'No accounts found' ? 'Please unlock MetaMask' : 'Failed to connect wallet');
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
+  const [isConnected, setIsConnected] = useState(false);
+  const [publicKey, setPublicKey] = useState(null);
+  const dispatch = useDispatch();
+  
+  // Check for existing wallet connection on component mount
   useEffect(() => {
-    const handleAccountsChanged = (accounts) => {
-      if (accounts.length > 0) {
-        const address = accounts[0];
-        setAccount(address);
-        localStorage.setItem(WALLET_ADDRESS_KEY, address);
-      } else {
-        setAccount('');
-        localStorage.removeItem(WALLET_ADDRESS_KEY);
-      }
-    };
-
-    const initializeWallet = async () => {
-      if (checkMetaMaskAvailability()) {
-        try {
-          const provider = new ethers.BrowserProvider(window.ethereum);
-          const accounts = await provider.listAccounts();
-          handleAccountsChanged(accounts);
-
-          // Listen for account changes
-          window.ethereum.on('accountsChanged', handleAccountsChanged);
-
-          // Listen for chain changes
-          window.ethereum.on('chainChanged', () => {
-            window.location.reload();
-          });
-        } catch (err) {
-          console.error('Error initializing wallet:', err);
+    const checkExistingConnection = async () => {
+      try {
+        // First check localStorage for existing connection
+        const savedWalletAddress = localStorage.getItem('walletPublicKey');
+        
+        if (savedWalletAddress) {
+          // We have a saved connection, restore it
+          handleSuccessfulConnection(savedWalletAddress, true);
+          return;
         }
+        
+        // Check if Phantom is installed
+        if (!window.ethereum?.isPhantom) return;
+        
+        // Get any existing accounts
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        
+        if (accounts && accounts.length > 0) {
+          const walletAddress = accounts[0];
+          handleSuccessfulConnection(walletAddress);
+        }
+      } catch (error) {
+        console.error('Error checking wallet connection:', error);
       }
     };
-
-    initializeWallet();
-
+    
+    // Small delay to ensure DOM is fully loaded
+    setTimeout(checkExistingConnection, 500);
+    
+    // Add event listeners for wallet changes
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('connect', () => {
+        console.log('Wallet connected event fired');
+      });
+      window.ethereum.on('disconnect', () => {
+        console.log('Wallet disconnected event fired');
+        handleDisconnect();
+      });
+    }
+    
     return () => {
+      // Clean up listeners
       if (window.ethereum) {
         window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', () => {});
+        window.ethereum.removeListener('connect', () => {});
+        window.ethereum.removeListener('disconnect', () => {});
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => {
-        setError('');
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [error]);
-
-  const authenticateWallet = async (address, provider) => {
-    try {
-      setIsSigning(true);
-      const nonce = generateNonce();
-      const signer = await provider.getSigner();
-      
-      // Sign the message
-      const signature = await signer.signMessage(nonce);
-      
-      // Verify the signature
-      const recoveredAddress = ethers.verifyMessage(nonce, signature);
-      
-      if (recoveredAddress.toLowerCase() === address.toLowerCase()) {
-        // Create a simple auth token (in a real app, this would be a JWT from a backend)
-        const authToken = btoa(`${address}:${Date.now()}`);
-        localStorage.setItem(AUTH_TOKEN_KEY, authToken);
-        setIsAuthenticated(true);
-      } else {
-        throw new Error('Signature verification failed');
-      }
-    } catch (err) {
-      console.error('Authentication error:', err);
-      setError('Failed to authenticate wallet');
-      setAccount('');
-      localStorage.removeItem(WALLET_ADDRESS_KEY);
-    } finally {
-      setIsSigning(false);
+  
+  const handleAccountsChanged = (accounts) => {
+    if (accounts.length === 0) {
+      // User disconnected their wallet
+      handleDisconnect();
+    } else {
+      // Account changed, update to the new one
+      handleSuccessfulConnection(accounts[0]);
     }
   };
-
-  return (
-    <div className="relative">
-      {error && (
-        <div className="fixed bottom-4 left-4 bg-red-500 text-white px-4 py-2 rounded-lg text-sm shadow-lg animate-fade-in-up z-50">
-          {error}
-        </div>
-      )}
+  
+  const handleSuccessfulConnection = (address, isSilent = false) => {
+    setPublicKey(address);
+    setIsConnected(true);
+    setIsConnecting(false);
+    dispatch(setWalletPublicKey(address));
+    
+    if (!isSilent) {
+      toast.success('Wallet connected successfully!');
+    }
+    
+    // Dispatch a custom event that other components can listen for
+    const event = new CustomEvent('walletConnected', { detail: { address } });
+    window.dispatchEvent(event);
+    
+    // Save to localStorage for persistence - use consistent key names
+    localStorage.setItem('walletConnected', 'true');
+    localStorage.setItem('walletPublicKey', address);
+  };
+  
+  const handleConnect = async () => {
+    try {
+      setIsConnecting(true);
+      const connectingToast = toast.loading('Connecting to wallet...');
       
-      {!account ? (
+      // Check if Phantom is installed
+      if (!window.ethereum) {
+        toast.dismiss(connectingToast);
+        toast.error('No wallet detected! Please install Phantom wallet extension.');
+        setIsConnecting(false);
+        return;
+      }
+      
+      // Request connection
+      const accounts = await window.ethereum.request({ 
+        method: 'eth_requestAccounts' 
+      });
+      
+      // Dismiss the connecting toast
+      toast.dismiss(connectingToast);
+      
+      if (accounts && accounts.length > 0) {
+        handleSuccessfulConnection(accounts[0]);
+      } else {
+        toast.error('Failed to connect. No accounts were provided.');
+        setIsConnecting(false);
+      }
+    } catch (error) {
+      console.error('Connection error:', error);
+      toast.error(`Connection failed: ${error.message || 'Unknown error'}`);
+      setIsConnecting(false);
+    }
+  };
+  
+  const handleDisconnect = () => {
+    setPublicKey(null);
+    setIsConnected(false);
+    dispatch(setWalletPublicKey(null));
+    toast.success('Wallet disconnected');
+    
+    // Dispatch a custom event for wallet disconnected
+    window.dispatchEvent(new CustomEvent('walletDisconnected'));
+    
+    // Clear from localStorage - use consistent key names
+    localStorage.removeItem('walletConnected');
+    localStorage.removeItem('walletPublicKey');
+    localStorage.removeItem('ongoingGame'); // Clear any ongoing game
+  };
+  
+  return (
+    <div className="flex items-center space-x-2">
+      {!isConnected ? (
         <button
-          onClick={connectWallet}
+          onClick={handleConnect}
           disabled={isConnecting}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all relative
-            ${isConnecting
-              ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-              : 'bg-purple-600 hover:bg-purple-700 text-white'}
-          `}
+          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            isConnecting 
+              ? 'bg-gray-500 cursor-wait' 
+              : 'bg-indigo-600 hover:bg-indigo-700'
+          } text-white`}
+          aria-label="Connect wallet"
+          tabIndex="0"
+          onKeyDown={(e) => e.key === 'Enter' && handleConnect()}
         >
-          <Wallet className="w-5 h-5" />
-          {isConnecting ? 'Connecting...' : isSigning ? 'Authenticating...' : 'Connect Wallet'}
+          {isConnecting ? (
+            <span className="flex items-center">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Connecting...
+            </span>
+          ) : (
+            'Connect Wallet'
+          )}
         </button>
       ) : (
-        <div className="flex items-center gap-2 px-4 py-2 bg-purple-700 rounded-lg text-white relative group cursor-pointer">
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-          <Wallet className="w-5 h-5" />
-          <span className="font-medium">{shortenAddress(account)}</span>
-          <button 
-            onClick={async () => {
-              try {
-                // Clear all local state and storage
-                setAccount('');
-                setError('');
-                setIsAuthenticated(false);
-                localStorage.removeItem(WALLET_ADDRESS_KEY);
-                localStorage.removeItem(AUTH_TOKEN_KEY);
-                
-                // Remove event listeners
-                window.ethereum.removeListener('accountsChanged', () => {});
-                
-                // Clear MetaMask connection state
-                await window.ethereum.request({
-                  method: 'wallet_requestPermissions',
-                  params: [{ eth_accounts: {} }],
-                });
-                
-                // Force disconnect without reconnecting
-                await window.ethereum.request({
-                  method: 'eth_requestAccounts',
-                  params: [],
-                }).then(() => {
-                  window.ethereum._state.accounts = [];
-                });
-              } catch (err) {
-                console.error('Error disconnecting wallet:', err);
-                setError('Failed to disconnect wallet');
-              }
-            }} 
-            className="absolute left-0 top-full mt-1 w-full bg-purple-500 text-white py-2 px-4 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 "
+        <div className="flex items-center space-x-2">
+          <button
+            className="px-4 py-2 bg-indigo-100 text-indigo-800 rounded-lg font-medium hover:bg-indigo-200 transition-all"
+            aria-label={`Wallet address: ${publicKey}`}
+            tabIndex="0"
+          >
+            {`${publicKey?.slice(0, 6)}...${publicKey?.slice(-4)}`}
+          </button>
+          <button
+            onClick={handleDisconnect}
+            className="px-4 py-2 bg-red-100 text-red-800 rounded-lg font-medium hover:bg-red-200 transition-all"
+            aria-label="Disconnect wallet"
+            tabIndex="0"
+            onKeyDown={(e) => e.key === 'Enter' && handleDisconnect()}
           >
             Disconnect
           </button>
@@ -218,6 +189,6 @@ const WalletConnect = () => {
       )}
     </div>
   );
-};
+}
 
 export default WalletConnect;

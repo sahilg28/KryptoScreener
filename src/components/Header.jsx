@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Flame, Star } from 'lucide-react';
+import { Flame, Star, TrendingUp } from 'lucide-react';
 import ksIcon from '../assets/ksicon.svg';
 import WalletConnect from './WalletConnect';
 
@@ -35,6 +35,13 @@ function Header() {
             >
               <Star className="h-5 w-5" />
               <span className="font-medium">Watchlist</span>
+            </Link>
+            <Link 
+              to="/upordown" 
+              className="flex items-center gap-2 text-gray-700 hover:text-purple-700 transition-colors duration-300"
+            >
+              <TrendingUp className="h-5 w-5" />
+              <span className="font-medium">Predict Game</span>
             </Link>
             <div className="ml-2">
               <WalletConnect />

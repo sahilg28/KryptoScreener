@@ -1,0 +1,48 @@
+/* Custom styles for smaller toasts */
+.small-toast {
+  font-size: 0.875rem !important;
+  max-width: 320px !important;
+}
+
+/* Make toasts smaller and more compact */
+.Toastify__toast {
+  padding: 8px 12px !important;
+  min-height: auto !important;
+  border-radius: 8px !important;
+}
+
+/* Add purple theme for success messages */
+.Toastify__toast--success {
+  background-color: rgba(126, 58, 242, 0.9) !important;
+}
+
+/* Style for info toasts */
+.Toastify__toast--info {
+  background-color: rgba(79, 70, 229, 0.9) !important;
+}
+
+/* Style for error toasts */
+.Toastify__toast--error {
+  background-color: rgba(239, 68, 68, 0.9) !important;
+}
+
+/* Style for warning toasts */
+.Toastify__toast--warning {
+  background-color: rgba(234, 179, 8, 0.9) !important;
+}
+
+/* Toast close button */
+.Toastify__close-button {
+  opacity: 0.7 !important;
+  color: white !important;
+}
+
+/* Make sure text is white for all toast types */
+.Toastify__toast-body {
+  color: white !important;
+}
+
+/* Toast progress bar */
+.Toastify__progress-bar {
+  height: 3px !important;
+} 
