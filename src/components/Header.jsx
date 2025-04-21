@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Flame, Star, TrendingUp } from 'lucide-react';
 import ksIcon from '../assets/ksicon.svg';
@@ -6,7 +6,27 @@ import WalletConnect from './WalletConnect';
 
 function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const walletConnectRef = useRef(null);
   const navigate = useNavigate();
+  
+  // Add event listener for wallet connect requests
+  useEffect(() => {
+    const handleWalletConnectRequest = () => {
+      // Find connect button inside WalletConnect component
+      if (walletConnectRef.current) {
+        const connectButton = walletConnectRef.current.querySelector('button[data-action="connect-wallet"]');
+        if (connectButton && !connectButton.disabled) {
+          connectButton.click();
+        }
+      }
+    };
+    
+    window.addEventListener('requestWalletConnect', handleWalletConnectRequest);
+    
+    return () => {
+      window.removeEventListener('requestWalletConnect', handleWalletConnectRequest);
+    };
+  }, []);
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-10">
@@ -41,9 +61,9 @@ function Header() {
               className="flex items-center gap-2 text-gray-700 hover:text-purple-700 transition-colors duration-300"
             >
               <TrendingUp className="h-5 w-5" />
-              <span className="font-medium">Predict Game</span>
+              <span className="font-medium">PredictKrypto</span>
             </Link>
-            <div className="ml-2">
+            <div className="ml-2" ref={walletConnectRef}>
               <WalletConnect />
             </div>
           </nav>

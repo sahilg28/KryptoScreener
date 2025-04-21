@@ -1,13 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
-import { setWalletPublicKey } from '../store/slices/walletSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { setWalletPublicKey, selectIsWalletConnected, selectWalletPublicKey } from '../store/slices/walletSlice';
 
 function WalletConnect() {
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [publicKey, setPublicKey] = useState(null);
   const dispatch = useDispatch();
+  
+  // Get wallet state from Redux
+  const isConnected = useSelector(selectIsWalletConnected);
+  const publicKey = useSelector(selectWalletPublicKey);
+  
+  // Setup wallet event listeners
+  useEffect(() => {
+    // Handle request wallet connect events
+    const handleRequestConnect = () => {
+      if (!isConnected && !isConnecting) {
+        handleConnect();
+      }
+    };
+    
+    window.addEventListener('requestWalletConnect', handleRequestConnect);
+    
+    return () => {
+      window.removeEventListener('requestWalletConnect', handleRequestConnect);
+    };
+  }, [isConnected, isConnecting]);
   
   // Check for existing wallet connection on component mount
   useEffect(() => {
@@ -15,25 +33,59 @@ function WalletConnect() {
       try {
         // First check localStorage for existing connection
         const savedWalletAddress = localStorage.getItem('walletPublicKey');
+        const savedWalletConnected = localStorage.getItem('walletConnected') === 'true';
         
-        if (savedWalletAddress) {
+        if (savedWalletAddress && savedWalletConnected) {
+          console.log('Restoring saved wallet connection:', savedWalletAddress);
           // We have a saved connection, restore it
-          handleSuccessfulConnection(savedWalletAddress, true);
+          dispatch(setWalletPublicKey(savedWalletAddress));
+          
+          // Verify that the Phantom wallet is still connected with this address
+          if (window.solana?.isPhantom) {
+            if (window.solana.isConnected) {
+              const currentAddress = window.solana.publicKey.toString();
+              // If addresses don't match, update to current one
+              if (currentAddress !== savedWalletAddress) {
+                console.log('Wallet address changed, updating to current one');
+                dispatch(setWalletPublicKey(currentAddress));
+                localStorage.setItem('walletPublicKey', currentAddress);
+              }
+            } else {
+              // Phantom is installed but not connected - try to reconnect
+              try {
+                console.log('Attempting to reconnect to saved wallet');
+                await window.solana.connect({ onlyIfTrusted: true });
+                const currentAddress = window.solana.publicKey.toString();
+                dispatch(setWalletPublicKey(currentAddress));
+                localStorage.setItem('walletPublicKey', currentAddress);
+              } catch (err) {
+                // Silent fail for auto-reconnect
+                console.log('Auto-reconnect failed, will require manual connection');
+                handleDisconnect();
+              }
+            }
+          }
           return;
         }
         
-        // Check if Phantom is installed
-        if (!window.ethereum?.isPhantom) return;
+        // Check if Phantom is installed and available
+        if (!window.solana?.isPhantom) {
+          console.log('Phantom wallet not installed');
+          return;
+        }
         
-        // Get any existing accounts
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        
-        if (accounts && accounts.length > 0) {
-          const walletAddress = accounts[0];
-          handleSuccessfulConnection(walletAddress);
+        // Check if already connected
+        if (window.solana.isConnected) {
+          console.log('Phantom wallet already connected');
+          const walletAddress = window.solana.publicKey.toString();
+          dispatch(setWalletPublicKey(walletAddress));
+          localStorage.setItem('walletConnected', 'true');
+          localStorage.setItem('walletPublicKey', walletAddress);
         }
       } catch (error) {
-        console.error('Error checking wallet connection:', error);
+        console.error('Error checking Solana wallet connection:', error);
+        // Reset connection state if there was an error
+        handleDisconnect();
       }
     };
     
@@ -41,103 +93,145 @@ function WalletConnect() {
     setTimeout(checkExistingConnection, 500);
     
     // Add event listeners for wallet changes
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('connect', () => {
-        console.log('Wallet connected event fired');
-      });
-      window.ethereum.on('disconnect', () => {
-        console.log('Wallet disconnected event fired');
-        handleDisconnect();
-      });
+    if (window.solana) {
+      window.solana.on('connect', handleSolanaConnect);
+      window.solana.on('disconnect', handleSolanaDisconnect);
+      window.solana.on('accountChanged', handleSolanaAccountChanged);
     }
     
     return () => {
       // Clean up listeners
-      if (window.ethereum) {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('connect', () => {});
-        window.ethereum.removeListener('disconnect', () => {});
+      if (window.solana) {
+        window.solana.off('connect', handleSolanaConnect);
+        window.solana.off('disconnect', handleSolanaDisconnect);
+        window.solana.off('accountChanged', handleSolanaAccountChanged);
       }
     };
-  }, []);
+  }, [dispatch]);
   
-  const handleAccountsChanged = (accounts) => {
-    if (accounts.length === 0) {
-      // User disconnected their wallet
-      handleDisconnect();
-    } else {
-      // Account changed, update to the new one
-      handleSuccessfulConnection(accounts[0]);
+  const handleSolanaConnect = () => {
+    console.log('Solana connect event received');
+    if (window.solana.publicKey) {
+      const address = window.solana.publicKey.toString();
+      dispatch(setWalletPublicKey(address));
+      localStorage.setItem('walletConnected', 'true');
+      localStorage.setItem('walletPublicKey', address);
+      
+      // Dispatch custom event
+      const event = new CustomEvent('walletConnected', { detail: { address } });
+      window.dispatchEvent(event);
     }
   };
   
-  const handleSuccessfulConnection = (address, isSilent = false) => {
-    setPublicKey(address);
-    setIsConnected(true);
-    setIsConnecting(false);
-    dispatch(setWalletPublicKey(address));
-    
-    if (!isSilent) {
-      toast.success('Wallet connected successfully!');
+  const handleSolanaDisconnect = () => {
+    console.log('Solana disconnect event received');
+    handleDisconnect();
+  };
+  
+  const handleSolanaAccountChanged = (publicKey) => {
+    console.log('Solana account changed event received');
+    if (publicKey) {
+      const address = publicKey.toString();
+      dispatch(setWalletPublicKey(address));
+      localStorage.setItem('walletConnected', 'true');
+      localStorage.setItem('walletPublicKey', address);
+      
+      // Dispatch custom event
+      const event = new CustomEvent('walletConnected', { detail: { address } });
+      window.dispatchEvent(event);
+    } else {
+      handleDisconnect();
     }
-    
-    // Dispatch a custom event that other components can listen for
-    const event = new CustomEvent('walletConnected', { detail: { address } });
-    window.dispatchEvent(event);
-    
-    // Save to localStorage for persistence - use consistent key names
-    localStorage.setItem('walletConnected', 'true');
-    localStorage.setItem('walletPublicKey', address);
   };
   
   const handleConnect = async () => {
+    if (isConnecting || isConnected) return;
+    
     try {
       setIsConnecting(true);
       const connectingToast = toast.loading('Connecting to wallet...');
       
       // Check if Phantom is installed
-      if (!window.ethereum) {
+      if (!window.solana?.isPhantom) {
         toast.dismiss(connectingToast);
-        toast.error('No wallet detected! Please install Phantom wallet extension.');
+        toast.error('No Phantom wallet detected! Please install Phantom wallet extension.');
+        window.open('https://phantom.app/', '_blank');
         setIsConnecting(false);
         return;
       }
       
-      // Request connection
-      const accounts = await window.ethereum.request({ 
-        method: 'eth_requestAccounts' 
-      });
-      
-      // Dismiss the connecting toast
-      toast.dismiss(connectingToast);
-      
-      if (accounts && accounts.length > 0) {
-        handleSuccessfulConnection(accounts[0]);
-      } else {
-        toast.error('Failed to connect. No accounts were provided.');
-        setIsConnecting(false);
+      // Request Solana connection
+      try {
+        console.log('Requesting Phantom wallet connection');
+        const { publicKey } = await window.solana.connect();
+        
+        // Dismiss the connecting toast
+        toast.dismiss(connectingToast);
+        
+        if (publicKey) {
+          const walletAddress = publicKey.toString();
+          console.log('Connection successful, wallet address:', walletAddress);
+          
+          // Update Redux state
+          dispatch(setWalletPublicKey(walletAddress));
+          
+          // Save to localStorage
+          localStorage.setItem('walletConnected', 'true');
+          localStorage.setItem('walletPublicKey', walletAddress);
+          
+          // Show success toast
+          toast.success('Wallet connected successfully!');
+          
+          // Dispatch custom event
+          const event = new CustomEvent('walletConnected', { detail: { address: walletAddress } });
+          window.dispatchEvent(event);
+        } else {
+          console.error('No public key returned from wallet');
+          toast.error('Failed to connect. No public key was provided.');
+        }
+      } catch (err) {
+        console.error('Wallet connection error:', err);
+        toast.dismiss(connectingToast);
+        toast.error(`Connection rejected: ${err.message || 'User rejected the request'}`);
       }
     } catch (error) {
       console.error('Connection error:', error);
       toast.error(`Connection failed: ${error.message || 'Unknown error'}`);
+    } finally {
       setIsConnecting(false);
     }
   };
   
-  const handleDisconnect = () => {
-    setPublicKey(null);
-    setIsConnected(false);
-    dispatch(setWalletPublicKey(null));
-    toast.success('Wallet disconnected');
-    
-    // Dispatch a custom event for wallet disconnected
-    window.dispatchEvent(new CustomEvent('walletDisconnected'));
-    
-    // Clear from localStorage - use consistent key names
-    localStorage.removeItem('walletConnected');
-    localStorage.removeItem('walletPublicKey');
-    localStorage.removeItem('ongoingGame'); // Clear any ongoing game
+  const handleDisconnect = async () => {
+    try {
+      console.log('Disconnecting wallet');
+      
+      // Disconnect from Phantom if connected
+      if (window.solana?.isPhantom && window.solana.isConnected) {
+        await window.solana.disconnect();
+      }
+      
+      // Update Redux state
+      dispatch(setWalletPublicKey(null));
+      
+      // Show success toast
+      toast.success('Wallet disconnected');
+      
+      // Dispatch custom event
+      window.dispatchEvent(new CustomEvent('walletDisconnected'));
+      
+      // Clear from localStorage
+      localStorage.removeItem('walletConnected');
+      localStorage.removeItem('walletPublicKey');
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+      toast.error('Failed to disconnect wallet');
+      
+      // Reset state anyway to ensure UI is consistent
+      dispatch(setWalletPublicKey(null));
+      localStorage.removeItem('walletConnected');
+      localStorage.removeItem('walletPublicKey');
+    }
   };
   
   return (
@@ -149,10 +243,11 @@ function WalletConnect() {
           className={`px-4 py-2 rounded-lg font-medium transition-all ${
             isConnecting 
               ? 'bg-gray-500 cursor-wait' 
-              : 'bg-indigo-600 hover:bg-indigo-700'
+              : 'bg-purple-700 hover:bg-purple-600'
           } text-white`}
           aria-label="Connect wallet"
           tabIndex="0"
+          data-action="connect-wallet"
           onKeyDown={(e) => e.key === 'Enter' && handleConnect()}
         >
           {isConnecting ? (
@@ -169,21 +264,19 @@ function WalletConnect() {
         </button>
       ) : (
         <div className="flex items-center space-x-2">
-          <button
-            className="px-4 py-2 bg-indigo-100 text-indigo-800 rounded-lg font-medium hover:bg-indigo-200 transition-all"
-            aria-label={`Wallet address: ${publicKey}`}
-            tabIndex="0"
-          >
-            {`${publicKey?.slice(0, 6)}...${publicKey?.slice(-4)}`}
-          </button>
+          <div className="px-3 py-2 bg-purple-100 text-purple-800 rounded-lg max-w-[140px] truncate">
+            {publicKey?.slice(0, 4)}...{publicKey?.slice(-4)}
+          </div>
           <button
             onClick={handleDisconnect}
-            className="px-4 py-2 bg-red-100 text-red-800 rounded-lg font-medium hover:bg-red-200 transition-all"
+            className="p-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-all"
             aria-label="Disconnect wallet"
             tabIndex="0"
             onKeyDown={(e) => e.key === 'Enter' && handleDisconnect()}
           >
-            Disconnect
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
           </button>
         </div>
       )}

@@ -64,6 +64,65 @@ body {
   animation: float 3s ease-in-out infinite;
 }
 
+@keyframes pulse-green {
+  0% {
+    color: #059669;
+  }
+  50% {
+    color: #10b981;
+  }
+  100% {
+    color: #059669;
+  }
+}
+
+@keyframes pulse-red {
+  0% {
+    color: #dc2626;
+  }
+  50% {
+    color: #ef4444;
+  }
+  100% {
+    color: #dc2626;
+  }
+}
+
+.animate-pulse-green {
+  animation: pulse-green 0.5s ease-in-out;
+}
+
+.animate-pulse-red {
+  animation: pulse-red 0.5s ease-in-out;
+}
+
+/* Price background animation */
+@keyframes flash-green {
+  0% {
+    background-color: rgba(16, 185, 129, 0.3);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes flash-red {
+  0% {
+    background-color: rgba(239, 68, 68, 0.3);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.bg-flash-green {
+  animation: flash-green 1s ease-out;
+}
+
+.bg-flash-red {
+  animation: flash-red 1s ease-out;
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 0 20px;
