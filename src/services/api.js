@@ -20,7 +20,8 @@ export const getTopCoins = async (page = 1, perPage = 100, currency = 'inr', ret
         order: 'market_cap_desc',
         per_page: perPage,
         page: page,
-        sparkline: false
+        sparkline: false,
+        price_change_percentage: '1h,24h,7d'
       }
     });
     return response.data;

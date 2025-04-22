@@ -13,6 +13,9 @@ export default {
         'heading-2': ['2rem', { lineHeight: '2.5rem', fontWeight: '600' }],
         'body': ['1rem', { lineHeight: '1.5rem', fontWeight: '400' }],
       },
+      animation: {
+        'spin-slow': 'spin 3s linear infinite',
+      },
     },
   },
   plugins: [],

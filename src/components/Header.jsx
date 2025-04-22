@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Flame, Star, TrendingUp } from 'lucide-react';
+import { Flame, Star, Gamepad2, Menu, X } from 'lucide-react';
 import ksIcon from '../assets/ksicon.svg';
 import WalletConnect from './WalletConnect';
 
@@ -28,42 +28,67 @@ function Header() {
     };
   }, []);
 
+  // Close menu when navigation occurs
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [navigate]);
+
   return (
-    <header className="bg-white shadow-md sticky top-0 z-10">
-      <div className="container mx-auto px-6 py-3 flex justify-between items-center">
+    <header className="bg-white shadow-md sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center">
-          <Link to="/" className="flex items-center gap-3">
-            <img src={ksIcon} alt="KryptoScreener Logo" className="h-10 w-10 rounded-full" />
-            <span className="text-2xl font-bold text-purple-700">KryptoScreener</span>
+          <Link to="/" className="flex items-center gap-2">
+            <img src={ksIcon} alt="KryptoScreener Logo" className="h-8 w-8 sm:h-10 sm:w-10 rounded-full" />
+            <span className="text-xl sm:text-2xl font-bold text-purple-700">KryptoScreener</span>
           </Link>
         </div>
-        <div className="flex items-center gap-6">
-          <button className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            <img src="/menu-icon.svg" alt="Menu" />
+        <div className="flex items-center">
+          <button 
+            className="sm:hidden p-2 text-gray-700 hover:text-purple-700 transition-colors" 
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          >
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
-          <nav className={`${isMenuOpen ? 'flex' : 'hidden'} flex-col md:flex-row md:flex items-center gap-4`}>
+          <nav className={`
+            ${isMenuOpen ? 'flex' : 'hidden'} 
+            sm:flex absolute top-full left-0 right-0 sm:relative
+            flex-col sm:flex-row items-center gap-4 
+            bg-white sm:bg-transparent 
+            p-4 sm:p-0 
+            border-b border-gray-200 sm:border-0
+            shadow-md sm:shadow-none
+            z-40 sm:z-auto
+            transition-all duration-300
+          `}>
             <Link 
               to="/trending" 
-              className="flex items-center gap-2 text-gray-700 hover:text-purple-700 transition-colors duration-300"
+              className="flex w-full sm:w-auto items-center gap-2 py-2 sm:py-0 text-gray-700 hover:text-purple-700 transition-colors duration-300"
+              tabIndex="0"
+              aria-label="Trending Coins"
             >
               <Flame className="h-5 w-5" />
               <span className="font-medium">Trending Coins</span>
             </Link>
             <Link 
               to="/watchlist" 
-              className="flex items-center gap-2 text-gray-700 hover:text-purple-700 transition-colors duration-300"
+              className="flex w-full sm:w-auto items-center gap-2 py-2 sm:py-0 text-gray-700 hover:text-purple-700 transition-colors duration-300"
+              tabIndex="0"
+              aria-label="Watchlist"
             >
               <Star className="h-5 w-5" />
               <span className="font-medium">Watchlist</span>
             </Link>
             <Link 
               to="/upordown" 
-              className="flex items-center gap-2 text-gray-700 hover:text-purple-700 transition-colors duration-300"
+              className="flex w-full sm:w-auto items-center gap-2 py-2 sm:py-0 text-gray-700 hover:text-purple-700 transition-colors duration-300"
+              tabIndex="0"
+              aria-label="PredictKrypto"
             >
-              <TrendingUp className="h-5 w-5" />
+              <Gamepad2 className="h-5 w-5" />
               <span className="font-medium">PredictKrypto</span>
             </Link>
-            <div className="ml-2" ref={walletConnectRef}>
+            <div className="w-full sm:w-auto py-2 sm:py-0 sm:ml-2" ref={walletConnectRef}>
               <WalletConnect />
             </div>
           </nav>

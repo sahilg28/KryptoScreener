@@ -23,12 +23,158 @@
   --secondary-color: #9A4DFF;
   --accent-color: #39FF14;
   --background-color: #F0F0F0;
+  --primary: #7e22ce;
+  --primary-hover: #9333ea;
 }
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: 'Poppins', sans-serif;
   box-sizing: border-box;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* Hide Scrollbar */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Common button styles */
+.btn-primary {
+  @apply bg-purple-700 hover:bg-purple-600 text-white py-1.5 px-3 sm:py-2 sm:px-4 rounded-lg text-sm sm:text-base font-medium transition-colors;
+}
+
+.btn-secondary {
+  @apply bg-gray-200 hover:bg-gray-300 text-gray-800 py-1.5 px-3 sm:py-2 sm:px-4 rounded-lg text-sm sm:text-base font-medium transition-colors;
+}
+
+.btn-outline {
+  @apply border border-purple-700 text-purple-700 hover:bg-purple-50 py-1.5 px-3 sm:py-2 sm:px-4 rounded-lg text-sm sm:text-base font-medium transition-colors;
+}
+
+/* Section titles */
+.section-title {
+  @apply text-xl sm:text-2xl md:text-3xl font-semibold text-gray-800 mb-4 relative after:content-[''] after:absolute after:w-16 after:h-1 after:bg-purple-700 after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:mt-2 pb-3;
+}
+
+/* Mobile-first card styles */
+.card {
+  @apply bg-white rounded-lg shadow-md p-4 sm:p-6 transition-shadow hover:shadow-lg;
+}
+
+.card-sm {
+  @apply bg-white rounded-lg shadow-sm p-3 sm:p-4 transition-shadow hover:shadow-md;
+}
+
+/* Custom table styles for mobile */
+.mobile-table {
+  @apply w-full;
+}
+
+.mobile-table th {
+  @apply hidden sm:table-cell px-4 py-2 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider;
+}
+
+.mobile-table td {
+  @apply block sm:table-cell px-4 py-1 sm:py-2 border-b border-gray-200 last:border-b-0 sm:border-b-0;
+}
+
+.mobile-table td:before {
+  content: attr(data-label);
+  @apply font-medium text-gray-700 sm:hidden float-left mr-2;
+}
+
+/* Responsive text utilities */
+.text-responsive-xs {
+  @apply text-xs sm:text-sm;
+}
+
+.text-responsive-sm {
+  @apply text-sm sm:text-base;
+}
+
+.text-responsive-base {
+  @apply text-base sm:text-lg;
+}
+
+.text-responsive-lg {
+  @apply text-lg sm:text-xl md:text-2xl;
+}
+
+.text-responsive-xl {
+  @apply text-xl sm:text-2xl md:text-3xl;
+}
+
+/* Container padding for mobile */
+.container-responsive {
+  @apply px-3 sm:px-4 md:px-6;
+}
+
+/* Responsive flex layouts */
+.flex-responsive-col {
+  @apply flex flex-col sm:flex-row;
+}
+
+.flex-responsive-wrap {
+  @apply flex flex-wrap gap-2;
+}
+
+/* Responsive grid layouts */
+.grid-responsive-1 {
+  @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4;
+}
+
+.grid-responsive-2 {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-4;
+}
+
+/* Media queries for specific mobile fixes */
+@media (max-width: 640px) {
+  .tooltip {
+    max-width: 200px;
+  }
+  
+  .truncate-mobile {
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .chart-container {
+    height: 200px !important;
+  }
+}
+
+/* Loading animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.loading-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* For accessible focus states */
+*:focus-visible {
+  @apply outline-none ring-2 ring-purple-400 ring-offset-1;
+}
+
 @layer components {
   .btn-primary {
     @apply bg-purple-700 text-white font-bold py-2 px-4 rounded hover:bg-purple-600 transition-colors duration-300;

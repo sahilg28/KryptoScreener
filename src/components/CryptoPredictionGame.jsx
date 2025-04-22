@@ -62,6 +62,9 @@ const CryptoPredictionGame = () => {
     isConnected 
   } = useBinanceSocket(selectedCrypto.toLowerCase());
   
+  // Ensure we capture the wallet address separately to handle disconnections
+  const [savedWalletAddress, setSavedWalletAddress] = useState(null);
+  
   // Load crypto icons on mount
   useEffect(() => {
     const loadCryptoIcons = async () => {
@@ -86,11 +89,14 @@ const CryptoPredictionGame = () => {
   // Check for wallet connection on mount and when Redux state changes
   useEffect(() => {
     if (isWalletConnected && walletAddress) {
+      setSavedWalletAddress(walletAddress); // Save the wallet address for later use
+      
       // Load saved stats
       try {
         const statsKey = `kryptoPredictStats_${walletAddress}`;
         const savedStats = localStorage.getItem(statsKey);
         if (savedStats) {
+          console.log('Loading saved stats for wallet:', { walletAddress, stats: JSON.parse(savedStats) });
           setStats(JSON.parse(savedStats));
         }
       } catch (error) {
@@ -197,6 +203,7 @@ const CryptoPredictionGame = () => {
   const startCountdown = (seconds) => {
     setCountdown(seconds);
     
+    // Clear any existing interval
     if (countdownInterval.current) {
       clearInterval(countdownInterval.current);
     }
@@ -215,8 +222,19 @@ const CryptoPredictionGame = () => {
         }
         
         if (newCountdown <= 0) {
+          // Stop the interval
           clearInterval(countdownInterval.current);
-          finishGame();
+          countdownInterval.current = null;
+          
+          // Use setTimeout to ensure state updates before finishing the game
+          setTimeout(() => {
+            // Double check the game is still active before finishing
+            if (isGameActive) {
+              console.log('Countdown reached zero, finishing game');
+              finishGame();
+            }
+          }, 100);
+          
           return 0;
         }
         
@@ -283,15 +301,20 @@ const CryptoPredictionGame = () => {
   
   // Finish the game
   const finishGame = () => {
-    if (!isGameActive || !initialPrice || !prediction) {
+    // Don't proceed if game is not active or we don't have initial data
+    if (!isGameActive || !initialPrice) {
       resetGame();
       return;
     }
-    
+
     try {
-      // Use current price from Binance socket or calculate a random outcome
-      const finalPriceValue = currentPrice || (initialPrice * (1 + (Math.random() * 0.02 - 0.01)));
+      console.log('Finishing game with state:', { initialPrice, prediction, currentPrice });
       
+      // Use current price from Binance socket or fallback to a reasonable value
+      const finalPriceValue = currentPrice || 
+                              (initialPrice * (1 + (Math.random() * 0.02 - 0.01)));
+      
+      // Store final price in state
       setFinalPrice(finalPriceValue);
       
       // Calculate price change & determine outcome
@@ -299,27 +322,29 @@ const CryptoPredictionGame = () => {
       const priceWentUp = finalPriceValue > initialPrice;
       const won = (prediction === 'up' && priceWentUp) || (prediction === 'down' && !priceWentUp);
       
-      // Update game state to 'result' to show the result UI
-      setGameState('result');
+      // First mark the game as not active to prevent any race conditions
+      setIsGameActive(false);
       
       // Clear ongoing game from storage
       localStorage.removeItem('ongoingGame');
       
-      // Update stats
-      let newStats = { ...stats };
-      if (won) {
-        newStats.wins = (stats.wins || 0) + 1;
-        // Show confetti for wins
-        loadConfetti();
-      } else {
-        newStats.losses = (stats.losses || 0) + 1;
-      }
+      // Update game state to 'won' or 'lost'
+      setGameState(won ? 'won' : 'lost');
       
+      // Update stats
+      const newStats = { 
+        wins: (stats.wins || 0) + (won ? 1 : 0),
+        losses: (stats.losses || 0) + (won ? 0 : 1)
+      };
+      
+      // Update stats state
       setStats(newStats);
       
-      // Save updated stats to localStorage if wallet is connected
-      if (isWalletConnected && walletAddress) {
-        const statsKey = `kryptoPredictStats_${walletAddress}`;
+      // Save updated stats to localStorage with wallet key
+      const addressToUse = walletAddress || savedWalletAddress;
+      if (addressToUse) {
+        const statsKey = `kryptoPredictStats_${addressToUse}`;
+        console.log('Saving stats to localStorage:', { statsKey, newStats });
         localStorage.setItem(statsKey, JSON.stringify(newStats));
       }
       
@@ -330,8 +355,10 @@ const CryptoPredictionGame = () => {
           : `😔 Not this time. ${selectedCrypto} went ${prediction === 'up' ? 'DOWN' : 'UP'}.`
       );
       
-      // Keep the result displayed (don't automatically reset)
-      setIsGameActive(false);
+      // Show confetti for wins
+      if (won) {
+        loadConfetti();
+      }
       
     } catch (error) {
       console.error('Error finishing game:', error);
@@ -342,6 +369,7 @@ const CryptoPredictionGame = () => {
   
   // Reset game state
   const resetGame = () => {
+    console.log('Resetting game state');
     setGameState('idle');
     setPrediction(null);
     setInitialPrice(null);
@@ -381,322 +409,250 @@ const CryptoPredictionGame = () => {
     }
   };
 
-  // Return wallet connect UI if not connected
-  if (!isWalletConnected) {
-    return (
-      <div className="bg-gradient-to-b from-purple-800 to-purple-900 min-h-screen text-white">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold mb-4">PredictKrypto Game</h1>
-            <p className="text-xl max-w-2xl mx-auto">
-              Predict whether the price of your chosen cryptocurrency will go UP or DOWN in the next few minutes. 
-              Connect your Solana wallet to play and track your prediction history!
-            </p>
+  // Render component UI
+  return (
+    <div className="flex flex-col bg-gradient-to-b from-purple-50 to-gray-50 p-4 sm:p-6 rounded-xl shadow-md">
+      {/* Title and Instructions */}
+      <div className="mb-4 p-4 rounded-lg bg-white shadow-sm border border-purple-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2">
+            <Trophy size={20} className="text-yellow-500" />
+            <h3 className="text-base sm:text-lg font-semibold">Your Stats:</h3>
+            <span className="text-green-600 font-medium text-sm sm:text-base">{stats.wins} Wins</span>
+            <span className="mx-1">|</span>
+            <span className="text-red-600 font-medium text-sm sm:text-base">{stats.losses} Losses</span>
           </div>
           
-          <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-8 text-center">
-            <Wallet className="h-16 w-16 mx-auto mb-4 text-purple-600" />
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">Connect Your Wallet</h2>
-            <p className="mb-6 text-gray-600">
-              You need to connect your Solana wallet to play the prediction game.
-            </p>
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('requestWalletConnect'))}
-              className="py-3 px-6 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all"
+          {!isWalletConnected && (
+            <button 
+              onClick={handleConnectWallet} 
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm transition-colors"
             >
-              Connect Wallet
+              <Wallet size={16} />
+              Connect Wallet to Save Progress
             </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-gray-100 min-h-screen">
-      {/* Game Header */}
-      <div className="bg-gradient-to-r from-purple-800 to-purple-900 text-white py-8">
-        <div className="container mx-auto px-4">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">PredictKrypto Game</h1>
-          <p className="text-lg">
-            Predict whether the price of your chosen cryptocurrency will go UP or DOWN in the next few 
-            minutes. Connect your Solana wallet to play and track your prediction history!
-          </p>
+          )}
         </div>
       </div>
       
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Crypto Selection */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <h2 className="flex items-center text-lg font-semibold mb-4">
-                <BarChart className="w-5 h-5 mr-2 text-purple-600" />
-                Select Crypto Pair
-              </h2>
-              <div className="space-y-3">
-                {CRYPTO_OPTIONS.map(crypto => (
-                  <button
-                    key={crypto.symbol}
-                    onClick={() => handleCryptoChange(crypto.symbol)}
-                    disabled={gameState === 'predicting'}
-                    className={`w-full flex items-center p-3 rounded-lg transition-all ${
-                      selectedCrypto === crypto.symbol
-                        ? 'bg-purple-50 border-2 border-purple-300'
-                        : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
-                    } ${gameState === 'predicting' ? 'opacity-60 cursor-not-allowed' : ''}`}
-                  >
-                    <div className="w-8 h-8 rounded-full overflow-hidden mr-3 bg-gray-100 flex items-center justify-center">
-                      {cryptoIcons[crypto.symbol] ? (
-                        <img 
-                          src={cryptoIcons[crypto.symbol].icon} 
-                          alt={crypto.symbol} 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-xs font-bold">{crypto.symbol}</span>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium">{crypto.symbol}/USDT</div>
-                      <div className="text-xs text-gray-500">{crypto.name}</div>
-                    </div>
-                    <div className={`text-right ${
-                      crypto.symbol === selectedCrypto && isPriceUp ? 'text-green-600' : 
-                      crypto.symbol === selectedCrypto && isPriceDown ? 'text-red-600' : 
-                      'text-gray-700'
-                    }`}>
-                      {crypto.symbol === selectedCrypto 
-                        ? (currentPrice ? `$${formatPriceDisplay(currentPrice)}` : '-')
-                        : (cryptoIcons[crypto.symbol]?.price ? `$${formatPriceDisplay(cryptoIcons[crypto.symbol].price)}` : '-')}
-                    </div>
-                  </button>
-                ))}
+      {/* Crypto Selection and Trading Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
+        {/* Crypto Selection */}
+        <div className="lg:col-span-1 bg-white p-4 rounded-lg shadow-sm border border-purple-100">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 flex items-center text-purple-800">
+            <BarChart size={18} className="mr-2 text-purple-600" />
+            Select Crypto
+          </h3>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2">
+            {CRYPTO_OPTIONS.map((crypto) => (
+              <button
+                key={crypto.symbol}
+                onClick={() => handleCryptoChange(crypto.symbol)}
+                className={`flex items-center p-3 rounded-lg transition-all duration-300 ${
+                  selectedCrypto === crypto.symbol
+                    ? 'bg-purple-100 border-purple-500 border text-purple-800 shadow-sm transform scale-105'
+                    : 'bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:scale-[1.02]'
+                }`}
+                disabled={gameState === 'predicting'}
+              >
+                <img 
+                  src={cryptoIcons[crypto.symbol]?.icon || getCryptoIconUrl(crypto.symbol)} 
+                  alt={crypto.name} 
+                  className="w-6 h-6 mr-2"
+                />
+                <div className="flex flex-col items-start">
+                  <span className="font-medium text-xs sm:text-sm">{crypto.symbol}</span>
+                  <span className="text-[10px] sm:text-xs text-gray-500">{crypto.name}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+          
+          <div className="mt-4">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 flex items-center text-purple-800">
+              <Clock size={18} className="mr-2 text-purple-600" />
+              Prediction Time
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
+              {TIME_SLOTS.map((slot) => (
+                <button
+                  key={slot.value}
+                  onClick={() => handleTimeSlotChange(slot.value)}
+                  className={`px-3 py-2 rounded-lg text-center text-xs sm:text-sm transition-all duration-300 ${
+                    timeSlot === slot.value
+                      ? 'bg-purple-100 border-purple-500 border text-purple-800 shadow-sm transform scale-105'
+                      : 'bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:scale-[1.02]'
+                  }`}
+                  disabled={gameState === 'predicting'}
+                >
+                  {slot.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        {/* Chart Container */}
+        <div className="lg:col-span-3 bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-purple-100">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 sm:mb-4">
+            <div className="flex items-center mb-2 sm:mb-0">
+              <h3 className="text-base sm:text-lg font-semibold mr-2">{selectedPair.name} Chart</h3>
+              <div className={`px-2 py-1 rounded-lg text-xs font-medium flex items-center gap-1 ${
+                isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                {isConnected ? 'Connected' : 'Connecting...'}
               </div>
             </div>
             
-            {/* Time Selection */}
-            {!isGameActive && (
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <h2 className="flex items-center text-lg font-semibold mb-4">
-                  <Clock className="w-5 h-5 mr-2 text-purple-600" />
-                  Select Time Slot
-                </h2>
-                <div className="grid grid-cols-2 gap-3">
-                  {TIME_SLOTS.map(slot => (
-                    <button
-                      key={slot.value}
-                      onClick={() => handleTimeSlotChange(slot.value)}
-                      disabled={gameState === 'predicting'}
-                      className={`py-2 px-4 rounded-lg transition-all ${
-                        timeSlot === slot.value
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
-                      } ${gameState === 'predicting' ? 'opacity-60 cursor-not-allowed' : ''}`}
-                    >
-                      {slot.label}
-                    </button>
-                  ))}
-                </div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
+              <div className="text-lg sm:text-xl font-semibold">
+                {formattedPrice}
               </div>
-            )}
-            
-            {/* Stats */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <h2 className="flex items-center text-lg font-semibold mb-4">
-                <Trophy className="w-5 h-5 mr-2 text-purple-600" />
-                Game Stats
-              </h2>
-              <div className="grid grid-cols-2 gap-4 text-center">
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="text-3xl font-bold text-green-600">{stats.wins || 0}</div>
-                  <div className="text-sm text-green-700">Wins</div>
-                </div>
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <div className="text-3xl font-bold text-red-600">{stats.losses || 0}</div>
-                  <div className="text-sm text-red-700">Losses</div>
-                </div>
-                <div className="col-span-2 bg-gray-50 p-3 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">Win Rate</div>
-                  <div className="text-xl font-semibold text-purple-600">
-                    {stats.wins + stats.losses > 0
-                      ? `${Math.round((stats.wins / (stats.wins + stats.losses)) * 100)}%`
-                      : '0%'}
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Live Price */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <h2 className="flex items-center text-lg font-semibold mb-4">
-                <BarChart className="w-5 h-5 mr-2 text-purple-600" />
-                Live Price
-              </h2>
-              <div className="text-center">
-                <div className={`text-4xl font-bold ${
-                  isPriceUp ? 'text-green-600' : 
-                  isPriceDown ? 'text-red-600' : 
-                  'text-gray-800'
+              {gameState === 'predicting' && (
+                <div className={`text-sm font-semibold ${
+                  priceChange > 0 ? 'text-green-600' : priceChange < 0 ? 'text-red-600' : 'text-gray-600'
                 }`}>
-                  {currentPrice ? `$${formatPriceDisplay(currentPrice)}` : '$0.00'}
-                  
-                  {/* Price movement indicator */}
-                  <span className="inline-block ml-2">
-                    {isPriceUp && <ArrowUp className="w-6 h-6 inline text-green-600" />}
-                    {isPriceDown && <ArrowDown className="w-6 h-6 inline text-red-600" />}
-                  </span>
+                  {priceChange > 0 ? '+' : ''}{priceChange.toFixed(3)}%
                 </div>
-                
-                {/* Add price change percentage when in active game */}
-                {gameState === 'predicting' && initialPrice && currentPrice && (
-                  <div className={`text-sm font-medium mt-1 ${
-                    priceChange > 0 ? 'text-green-600' : 
-                    priceChange < 0 ? 'text-red-600' : 
-                    'text-gray-500'
-                  }`}>
-                    {priceChange > 0 ? '+' : ''}{priceChange.toFixed(2)}%
-                  </div>
-                )}
-                
-                <div className="text-gray-500 mt-1 flex items-center justify-center">
-                  <span className="font-medium">{selectedCrypto}/USDT</span>
-                  {isConnected && (
-                    <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Live</span>
-                  )}
-                </div>
-              </div>
+              )}
             </div>
           </div>
           
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Trading View Chart */}
-            <div className="bg-white rounded-lg shadow-md p-4 h-[500px]" ref={chartContainerRef}>
-              <h2 className="text-lg font-semibold mb-4">
-                <span className="text-green-500">●</span> {selectedCrypto}/USDT Live Chart
-              </h2>
-              <div className="h-[430px] w-full">
-                <TradingViewWidget 
-                  symbol={selectedPair?.tradingViewSymbol || 'BTCUSDT'} 
-                />
+          {/* Chart */}
+          <div ref={chartContainerRef} className="h-[300px] sm:h-[400px]">
+            <TradingViewWidget symbol={selectedPair.tradingViewSymbol} />
+          </div>
+        </div>
+      </div>
+      
+      {/* Game Controls */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-purple-100">
+        {gameState === 'idle' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button
+              onClick={() => makePrediction('up')}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3 sm:py-4 rounded-lg text-sm sm:text-base font-semibold transition-all"
+              disabled={isLoading}
+            >
+              <ArrowUp size={24} className="" />
+              {isLoading ? 'Loading...' : 'Price Will Go UP!'}
+            </button>
+            <button
+              onClick={() => makePrediction('down')}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white py-3 sm:py-4 rounded-lg text-sm sm:text-base font-semibold transition-all "
+              disabled={isLoading}
+            >
+              <ArrowDown size={24} className="" />
+              {isLoading ? 'Loading...' : 'Price Will Go DOWN!'}
+            </button>
+          </div>
+        )}
+        
+        {gameState === 'predicting' && (
+          <div className="flex flex-col items-center text-center">
+            <div className="mb-3 text-sm sm:text-base text-gray-600">
+              Your prediction: Price will go 
+              <span className={`font-bold ${prediction === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+                {' '}{prediction === 'up' ? 'UP' : 'DOWN'}{' '}
+              </span>
+              from ${initialPrice?.toFixed(2)}
+            </div>
+            
+            <div className="text-3xl sm:text-4xl font-bold my-2 text-purple-800">
+              {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
+            </div>
+            
+            <div className="w-full max-w-md bg-gray-200 rounded-full h-3 mb-4">
+              <div 
+                className="bg-gradient-to-r from-purple-500 to-purple-700 h-3 rounded-full transition-all duration-1000" 
+                style={{ width: `${(countdown / (timeSlot * 60)) * 100}%` }} 
+              ></div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-md p-4 bg-gray-50 rounded-lg mt-2 shadow-inner">
+              <div className="flex items-center gap-2 justify-center sm:justify-start">
+                <span className="text-sm sm:text-base text-gray-500">Initial:</span>
+                <span className="font-medium">
+                  ${typeof initialPrice === 'number' ? initialPrice.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: initialPrice > 1000 ? 2 : 6
+                  }) : '0.00'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 justify-center sm:justify-start">
+                <span className="text-sm sm:text-base text-gray-500">Current:</span>
+                <span className={`font-medium ${
+                  currentPrice > initialPrice 
+                    ? 'text-green-600' 
+                    : currentPrice < initialPrice 
+                    ? 'text-red-600' 
+                    : ''
+                }`}>${currentPrice?.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {(gameState === 'won' || gameState === 'lost') && (
+          <div className="flex flex-col items-center text-center">
+            <div className={`text-xl sm:text-2xl font-bold mb-4 ${
+              gameState === 'won' ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {gameState === 'won' ? '🎉 Prediction Correct! You Won!' : '😔 Prediction Incorrect. You Lost.'}
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl mb-6">
+              <div className="flex flex-col items-center bg-gray-50 p-3 rounded-lg shadow-sm border border-gray-200">
+                <span className="text-xs sm:text-sm text-gray-500">Prediction</span>
+                <span className={`font-medium ${
+                  prediction === 'up' ? 'text-green-600' : 'text-red-600'
+                }`}>{prediction === 'up' ? 'UP' : 'DOWN'}</span>
+              </div>
+              <div className="flex flex-col items-center bg-gray-50 p-3 rounded-lg shadow-sm border border-gray-200">
+                <span className="text-xs sm:text-sm text-gray-500">Initial Price</span>
+                <span className="font-medium">
+                  ${typeof initialPrice === 'number' ? initialPrice.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: initialPrice > 1000 ? 2 : 6
+                  }) : '0.00'}
+                </span>
+              </div>
+              <div className="flex flex-col items-center bg-gray-50 p-3 rounded-lg shadow-sm border border-gray-200">
+                <span className="text-xs sm:text-sm text-gray-500">Final Price</span>
+                <span className={`font-medium ${
+                  finalPrice > initialPrice 
+                    ? 'text-green-600' 
+                    : finalPrice < initialPrice 
+                    ? 'text-red-600' 
+                    : 'text-gray-600'
+                }`}>
+                  ${typeof finalPrice === 'number' ? finalPrice.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: finalPrice > 1000 ? 2 : 6
+                  }) : '0.00'}
+                </span>
               </div>
             </div>
             
-            {/* Main Content Area */}
-            <div className="bg-purple-900 text-white p-4 rounded-lg mb-4 shadow-lg">
-              {gameState === 'idle' ? (
-                <div className="text-center">
-                  <h2 className="text-xl mb-4">Ready to Play?</h2>
-                  <p className="mb-4">Predict whether the price of {selectedCrypto} will go UP or DOWN in {timeSlot * 60} seconds!</p>
-                  <div className="flex justify-center space-x-4">
-                    <button
-                      onClick={() => makePrediction('up')}
-                      className="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-lg shadow-md transform  transition-all flex items-center justify-center"
-                      disabled={!isWalletConnected}
-                    >
-                      <ArrowUp className="w-5 h-5 mr-1" />
-                      UP
-                    </button>
-                    <button
-                      onClick={() => makePrediction('down')}
-                      className="bg-red-500 hover:bg-red-600 text-white py-2 px-6 rounded-lg shadow-md transform  transition-all flex items-center justify-center"
-                      disabled={!isWalletConnected}
-                    >
-                      <ArrowDown className="w-5 h-5 mr-1" />
-                      DOWN
-                    </button>
-                  </div>
-                  {!isWalletConnected && (
-                    <p className="mt-4 text-yellow-400">Connect your wallet to play!</p>
-                  )}
-                </div>
-              ) : gameState === 'predicting' ? (
-                <div className="text-center">
-                  <h2 className="text-xl mb-2">Prediction in Progress!</h2>
-                  <p className="mb-4">You predicted {selectedCrypto} will go <span className={`font-bold ${prediction === 'up' ? 'text-green-500' : 'text-red-500'}`}>{prediction?.toUpperCase()}</span></p>
-                  
-                  <div className="flex justify-between items-center mb-4">
-                    <div>
-                      <p className="text-gray-400">Starting Price:</p>
-                      <p className="text-lg">${formatPriceDisplay(initialPrice)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400">Current Price:</p>
-                      <p className="text-lg">${formatPriceDisplay(currentPrice)}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="w-full bg-gray-700 rounded-full h-2.5 mb-4">
-                    <div className="bg-yellow-400 h-2.5 rounded-xl" style={{ width: `${Math.min(100, ((timeSlot * 60 - countdown) / (timeSlot * 60)) * 100)}%` }}></div>
-                  </div>
-                  
-                  <p>Time : <span className="font-medium">{Math.max(0, timeSlot * 60 - countdown)} seconds</span></p>
-                </div>
-              ) : gameState === 'result' ? (
-                <div className="text-center">
-                  <h2 className="text-2xl mb-4">
-                    {prediction && finalPrice && initialPrice && (
-                      (prediction === 'up' && finalPrice > initialPrice) || 
-                      (prediction === 'down' && finalPrice < initialPrice) ? (
-                        <span className="text-green-500">🎉 You Won! 🎉</span>
-                      ) : (
-                        <span className="text-red-500">😔 You Lost</span>
-                      )
-                    )}
-                  </h2>
-                  
-                  <p className="mb-4">
-                    You predicted {selectedCrypto} would go <span className={`font-bold ${prediction === 'up' ? 'text-green-500' : 'text-red-500'}`}>{prediction?.toUpperCase()}</span>
-                  </p>
-                  
-                  <div className="flex justify-between items-center mb-4">
-                    <div>
-                      <p className="text-gray-400">Starting Price:</p>
-                      <p className="text-lg">${formatPriceDisplay(initialPrice)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400">Final Price:</p>
-                      <p className="text-lg">${formatPriceDisplay(finalPrice)}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="my-6">
-                    {prediction && finalPrice && initialPrice && (
-                      (prediction === 'up' && finalPrice > initialPrice) || 
-                      (prediction === 'down' && finalPrice < initialPrice) ? (
-                        <p className="text-green-500 text-lg">Great job! Your prediction was correct.</p>
-                      ) : (
-                        <p className="text-yellow-400 text-lg">Don't worry! The market is unpredictable. Try again!</p>
-                      )
-                    )}
-                  </div>
-                  
-                  <button
-                    onClick={resetGame}
-                    className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-6 rounded-lg shadow-md transform hover:scale-105 transition-all mt-4"
-                  >
-                    Play Again
-                  </button>
-                </div>
-              ) : null}
-            </div>
-            
-            {/* How to Play */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <h2 className="flex items-center text-lg font-semibold mb-4">
-                <Info className="w-5 h-5 mr-2 text-purple-600" />
-                How to Play
-              </h2>
-              <ol className="space-y-3 ml-6 list-decimal text-gray-700">
-                <li className="pl-2">Select a cryptocurrency from the list of available options.</li>
-                <li className="pl-2">Choose a time slot for your prediction (1, 3, 5, or 10 minutes).</li>
-                <li className="pl-2">Predict whether the price will go UP or DOWN within the selected time frame.</li>
-                <li className="pl-2">Watch the live price movement during the countdown.</li>
-                <li className="pl-2">When the timer ends, see if your prediction was correct!</li>
-              </ol>
-            </div>
+            <button
+              onClick={resetGame}
+              className="bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white px-6 py-3 rounded-lg text-sm sm:text-base font-medium transition-all hover:shadow-lg transform hover:scale-105"
+            >
+              Play Again
+            </button>
+          </div>
+        )}
+      </div>
+      
+      {/* Game Rules */}
+      <div className="mt-4 p-4 bg-white rounded-lg shadow-sm border border-purple-100 text-xs sm:text-sm text-gray-700">
+        <div className="flex items-start gap-2">
+          <Info size={18} className="text-purple-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="mb-2"><strong>How to play:</strong> Select a cryptocurrency and prediction time, then guess if the price will go UP or DOWN.</p>
+            <p className="mb-2"><strong>Important:</strong> This is a fun game with no real cryptocurrency or money involved. It's just for testing your prediction skills!</p>
           </div>
         </div>
       </div>

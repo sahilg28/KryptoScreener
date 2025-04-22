@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, ChevronLeft, ChevronRight, Star, TrendingUp, BarChart2 } from 'lucide-react';
 import { getTopCoins } from '../services/api';
 import CoinDetailsModal from './CoinDetailsModal';
+import PageBanner from './PageBanner';
 
 function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -13,12 +14,6 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
   const COINS_PER_PAGE = 50;
   const [allCoins, setAllCoins] = useState([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [globalStats, setGlobalStats] = useState({
-    totalMarketCap: 0,
-    totalVolume: 0,
-    marketCapChangePercentage24h: 0,
-    volumeChangePercentage24h: 0
-  });
 
   useEffect(() => {
     const fetchAllCoinsForSearch = async () => {
@@ -73,27 +68,6 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
     }
   }, [searchTerm, allCoins]);
 
-  useEffect(() => {
-    const fetchGlobalStats = async () => {
-      try {
-        const response = await fetch('https://api.coingecko.com/api/v3/global');
-        const data = await response.json();
-        setGlobalStats({
-          totalMarketCap: data.data.total_market_cap.usd,
-          totalVolume: data.data.total_volume.usd,
-          marketCapChangePercentage24h: data.data.market_cap_change_percentage_24h_usd,
-          volumeChangePercentage24h: data.data.volume_24h_change_24h
-        });
-      } catch (error) {
-        console.error('Error fetching global stats:', error);
-      }
-    };
-
-    fetchGlobalStats();
-    const interval = setInterval(fetchGlobalStats, 300000);
-    return () => clearInterval(interval);
-  }, []);
-
   const handleSearch = (value) => {
     setSearchTerm(value);
     setPage(1);
@@ -138,7 +112,7 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 my-2 sm:my-0">
           <span className="text-sm">Page</span>
           <select 
             value={page}
@@ -211,46 +185,18 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h2 className="section-title text-2xl font-semibold text-center mb-4">Explore the World of Cryptocurrencies</h2>
-      <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-          <div className="flex items-center gap-2 text-sm md:text-base">
-            <TrendingUp size={20} className="text-purple-600" />
-            <span className="font-medium">Market Cap:</span>
-            <span className="font-bold">
-              ${formatLargeNumber(globalStats.totalMarketCap)}
-            </span>
-            <span className={`ml-2 ${globalStats.marketCapChangePercentage24h >= 0 
-              ? 'text-green-600' 
-              : 'text-red-600'}`}
-            >
-              {globalStats.marketCapChangePercentage24h >= 0 ? '+' : ''}
-              {globalStats.marketCapChangePercentage24h?.toFixed(2) || '0.00'}%
-            </span>
-          </div>
+      <PageBanner 
+        title="Track Real-Time Crypto Prices & Trends"
+        description="Monitor cryptocurrency prices, market caps, and volume data updated in real-time from trusted sources"
+      />
 
-          <div className="flex items-center gap-2 text-sm md:text-base">
-            <BarChart2 size={20} className="text-purple-600" />
-            <span className="font-medium">24h Volume:</span>
-            <span className="font-bold">
-              ${formatLargeNumber(globalStats.totalVolume)}
-            </span>
-            <span className={`ml-2 ${globalStats.volumeChangePercentage24h >= 0 
-              ? 'text-green-600' 
-              : 'text-red-600'}`}
-            >
-              {globalStats.volumeChangePercentage24h >= 0 ? '+' : ''}
-              {globalStats.volumeChangePercentage24h?.toFixed(2) || '0.00'}%
-            </span>
-          </div>
-        </div>
-
-        <div className="flex flex-col md:flex-row items-center gap-4">
-          <div className="relative w-full md:w-64">
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="relative flex-1 w-full">
             <input
               type="text"
-              placeholder="Search in 1000 cryptocurrencies..."
-              className="w-full p-2 pl-10 border border-gray-300 rounded"
+              placeholder="Search 1000+ cryptocurrencies..."
+              className="w-full p-2 pl-10 border border-gray-300 rounded bg-white"
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
             />
@@ -259,7 +205,7 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
           <select
             value={currency}
             onChange={handleCurrencyChange}
-            className="w-full md:w-auto p-2 border border-gray-300 rounded"
+            className="w-full sm:w-48 p-2 border border-gray-300 rounded bg-white"
           >
             {currencies.map(curr => (
               <option key={curr.value} value={curr.value}>
@@ -268,79 +214,136 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
             ))}
           </select>
         </div>
+
+        <div className="w-full">
+          {!allCoins.length && !loading && (
+            <div className="text-center py-4 text-gray-500">
+              Loading coin database...
+            </div>
+          )}
+
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700 mx-auto"></div>
+              <p className="mt-4">Loading cryptocurrencies...</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="overflow-x-auto bg-white rounded-lg shadow">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        #
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Coin
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Price
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                        24h %
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                        7d %
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                        Market Cap
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                        Volume(24h)
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {coins.length > 0 ? (
+                      coins.map((coin, index) => (
+                        <tr key={coin.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {searchTerm ? index + 1 : (page - 1) * COINS_PER_PAGE + index + 1}
+                          </td>
+                          <td className="px-3 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <img src={coin.image} alt={coin.name} className="w-6 h-6 rounded-full" />
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                                <span className="font-medium text-gray-900">{coin.symbol.toUpperCase()}</span>
+                                <span className="text-xs text-gray-500 hidden sm:inline">{coin.name}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {renderPrice(coin.current_price)}
+                          </td>
+                          <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-right hidden sm:table-cell">
+                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-lg ${
+                              coin.price_change_percentage_24h > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {coin.price_change_percentage_24h ? coin.price_change_percentage_24h.toFixed(2) : 0}%
+                            </span>
+                          </td>
+                          <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-right hidden md:table-cell">
+                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-lg ${
+                              coin.price_change_percentage_7d_in_currency > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {coin.price_change_percentage_7d_in_currency ? coin.price_change_percentage_7d_in_currency.toFixed(2) : 0}%
+                            </span>
+                          </td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 text-right hidden lg:table-cell">
+                            {currentCurrency.symbol}{formatLargeNumber(coin.market_cap)}
+                          </td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 text-right hidden lg:table-cell">
+                            {currentCurrency.symbol}{formatLargeNumber(coin.total_volume)}
+                          </td>
+                          <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex space-x-1 justify-center">
+                              <button
+                                onClick={() => setSelectedCoin(coin)}
+                                className="p-1 text-gray-600 hover:text-purple-700 transition-colors"
+                                aria-label={`View details for ${coin.name}`}
+                              >
+                                <BarChart2 size={18} />
+                              </button>
+                              {watchlist.includes(coin.id) ? (
+                                <button
+                                  onClick={() => removeFromWatchlist(coin.id)}
+                                  className="p-1 text-yellow-500 hover:text-yellow-600 transition-colors"
+                                  aria-label={`Remove ${coin.name} from watchlist`}
+                                >
+                                  <Star className="fill-current" size={18} />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => addToWatchlist(coin.id)}
+                                  className="p-1 text-gray-400 hover:text-yellow-500 transition-colors"
+                                  aria-label={`Add ${coin.name} to watchlist`}
+                                >
+                                  <Star size={18} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
+                          No coins found matching your search.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {renderPagination()}
+            </div>
+          )}
+        </div>
       </div>
-
-      {!allCoins.length && !loading && (
-        <div className="text-center py-4 text-gray-500">
-          Loading coin database...
-        </div>
-      )}
-
-      {loading ? (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700 mx-auto"></div>
-          <p className="mt-4">Loading cryptocurrencies...</p>
-        </div>
-      ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="w-full table-auto">
-              <thead>
-                <tr className="bg-purple-100">
-                  <th className="px-4 py-2 text-left">Rank</th>
-                  <th className="px-4 py-2 text-left">Coin</th>
-                  <th className="px-4 py-2 text-right">Price ({currentCurrency.symbol})</th>
-                  <th className="px-4 py-2 text-right">24h %</th>
-                  <th className="px-4 py-2 text-right">Market Cap ({currentCurrency.symbol})</th>
-                  <th className="px-4 py-2 text-center">Watchlist</th>
-                </tr>
-              </thead>
-              <tbody>
-                {coins.map((coin, index) => (
-                  <tr key={coin.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-4 py-2 text-left">
-                      {searchTerm ? coin.market_cap_rank : (page - 1) * 50 + index + 1}
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="flex items-center cursor-pointer" onClick={() => setSelectedCoin(coin)}>
-                        <img src={coin.image} alt={coin.name} className="w-6 h-6 mr-2" />
-                        <span>{coin.name}</span>
-                        <span className="ml-2 text-gray-500 uppercase">{coin.symbol}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      {renderPrice(coin.current_price)}
-                    </td>
-                    <td className={`px-4 py-2 text-right ${coin.price_change_percentage_24h >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {coin.price_change_percentage_24h?.toFixed(2)}%
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      {renderPrice(coin.market_cap)}
-                    </td>
-                    <td className="px-4 py-2 text-center">
-                      <button onClick={() => watchlist.includes(coin.id) ? removeFromWatchlist(coin.id) : addToWatchlist(coin.id)}>
-                        <Star 
-                          size={20} 
-                          className={watchlist.includes(coin.id) ? "text-yellow-500 fill-current" : "text-gray-400"} 
-                        />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {renderPagination()}
-        </>
-      )}
-      {selectedCoin && (
-        <CoinDetailsModal 
-          coin={selectedCoin} 
-          onClose={() => setSelectedCoin(null)} 
-          currency={currency}
-          currencySymbol={currentCurrency.symbol}
-        />
-      )}
+      {selectedCoin && <CoinDetailsModal coin={selectedCoin} onClose={() => setSelectedCoin(null)} />}
     </div>
   );
 }

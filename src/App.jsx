@@ -6,6 +6,7 @@ import CryptoTable from './components/CryptoTable';
 import FeaturesSection from './components/FeaturesSection';
 import SubscriptionSection from './components/SubscriptionSection';
 import Footer from './components/Footer';
+import F_G_Index from './components/F&G_Index';
 import Watchlist from './pages/Watchlist';
 import TrendingPage from './pages/TrendingPage';
 import UpOrDown from './pages/upordown';
@@ -26,13 +27,16 @@ function App() {
   const HomePage = () => (
     <>
       <HeroSection />
+      <div className="container mx-auto px-4">
+        <F_G_Index />
+      </div>
       <CryptoTable 
         watchlist={watchlist} 
         addToWatchlist={addToWatchlist} 
         removeFromWatchlist={removeFromWatchlist} 
       />
-      <FeaturesSection />
       <SubscriptionSection />
+      <FeaturesSection />
     </>
   );
 

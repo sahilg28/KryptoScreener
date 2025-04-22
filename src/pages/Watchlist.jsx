@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Star, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
+import PageBanner from '../components/PageBanner';
 
 function Watchlist({ watchlist, removeFromWatchlist }) {
   const [watchlistCoins, setWatchlistCoins] = useState([]);
@@ -97,7 +98,8 @@ function Watchlist({ watchlist, removeFromWatchlist }) {
           const parsedData = JSON.parse(cachedData);
           const filteredCoins = parsedData.filter(coin => watchlist.includes(coin.id));
           setWatchlistCoins(filteredCoins);
-          setError('Showing cached data. Please refresh for latest information.');
+          // Don't show the error message when using cached data as fallback
+          setError(null);
         } else {
           setError('Failed to fetch watchlist coins. Please try again later.');
         }
@@ -124,70 +126,92 @@ function Watchlist({ watchlist, removeFromWatchlist }) {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700 mx-auto"></div>
-          <p className="mt-4">Loading your watchlist...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center text-red-600">
-          <AlertTriangle size={48} className="mx-auto mb-4" />
-          <p>{error}</p>
+          <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-purple-700 mx-auto"></div>
+          <p className="mt-4 text-sm sm:text-base">Loading your watchlist...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h2 className="section-title mb-6">Your Watchlist</h2>
+    <div className="container mx-auto px-4 py-6 sm:py-8">
+      <PageBanner 
+        title="Your Watchlist"
+        description="Track your favorite cryptocurrencies and stay updated with real-time price changes"
+      />
+      
+      {error && (
+        <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+          <div className="flex items-center">
+            <AlertTriangle size={24} className="text-red-500 mr-3" />
+            <p className="text-sm sm:text-base text-red-700">{error}</p>
+          </div>
+        </div>
+      )}
       
       {watchlistCoins.length === 0 ? (
-        <div className="text-center py-8">
-          <Star size={48} className="mx-auto mb-4 text-gray-400" />
-          <p className="text-gray-600">
+        <div className="text-center py-6 sm:py-8 bg-white rounded-lg shadow-md">
+          <Star size={36} className="mx-auto mb-4 text-gray-400" />
+          <p className="text-sm sm:text-base text-gray-600">
             Your watchlist is empty. Add coins from the main table to track them here.
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full table-auto">
-            <thead>
-              <tr className="bg-purple-100">
-                <th className="px-4 py-2 text-left">Coin</th>
-                <th className="px-4 py-2 text-right">Price</th>
-                <th className="px-4 py-2 text-right">24h %</th>
-                <th className="px-4 py-2 text-right">Market Cap</th>
-                <th className="px-4 py-2 text-center">Remove</th>
+        <div className="overflow-x-auto bg-white rounded-lg shadow">
+          <table className="w-full mobile-table">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Coin
+                </th>
+                <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Price
+                </th>
+                <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                  24h %
+                </th>
+                <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                  Market Cap
+                </th>
+                <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Action
+                </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-white divide-y divide-gray-200">
               {watchlistCoins.map((coin) => (
-                <tr key={coin.id} className="border-b border-gray-200 hover:bg-gray-50">
-                  <td className="px-4 py-2">
+                <tr key={coin.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-3 py-4 whitespace-nowrap" data-label="Coin">
                     <div className="flex items-center">
-                      <img src={coin.image} alt={coin.name} className="w-6 h-6 mr-2" />
-                      <span>{coin.name}</span>
-                      <span className="ml-2 text-gray-500 uppercase">{coin.symbol}</span>
+                      <img src={coin.image} alt={coin.name} className="w-6 h-6 mr-2 flex-shrink-0" />
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="font-medium text-gray-900 truncate max-w-[120px]">{coin.name}</span>
+                        <span className="text-xs text-gray-500 uppercase sm:ml-2">{coin.symbol}</span>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-4 py-2 text-right">${coin.current_price.toLocaleString()}</td>
-                  <td className={`px-4 py-2 text-right ${coin.price_change_percentage_24h >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {coin.price_change_percentage_24h?.toFixed(2)}%
+                  <td className="px-3 py-4 whitespace-nowrap text-sm sm:text-right" data-label="Price">
+                    ${coin.current_price.toLocaleString()}
                   </td>
-                  <td className="px-4 py-2 text-right">${coin.market_cap.toLocaleString()}</td>
-                  <td className="px-4 py-2 text-center">
+                  <td className={`px-3 py-4 whitespace-nowrap text-xs text-right hidden sm:table-cell ${coin.price_change_percentage_24h >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-lg ${
+                      coin.price_change_percentage_24h >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {coin.price_change_percentage_24h?.toFixed(2)}%
+                    </span>
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 text-right hidden md:table-cell">
+                    ${coin.market_cap.toLocaleString()}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-center" data-label="Remove">
                     <button 
                       onClick={() => handleRemove(coin.id)}
-                      className="focus:outline-none hover:text-red-600 transition-colors"
+                      className="p-1.5 rounded-full hover:bg-red-100 focus:outline-none transition-colors"
+                      aria-label={`Remove ${coin.name} from watchlist`}
                     >
-                      <Star size={20} className="text-yellow-500 fill-current" />
+                      <Star size={18} className="text-yellow-500 fill-current" />
                     </button>
                   </td>
                 </tr>

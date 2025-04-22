@@ -25,6 +25,7 @@
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.0.2",
     "react-toastify": "^11.0.5",
+    "react-tooltip": "^5.28.1",
     "react-type-animation": "^3.2.0",
     "recharts": "^2.5.0"
   },
