@@ -221,7 +221,7 @@ function F_G_Index() {
   if (!fngData) return null;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-6">
       {/* Fear & Greed Index Card */}
       <div className="md:col-span-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
         <div className="p-3 border-b bg-purple-50">
@@ -287,7 +287,7 @@ function F_G_Index() {
       </div>
 
       {/* Market Stats Card */}
-      <div className="md:col-span-5 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+      <div className="md:col-span-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
         <div className="p-3 border-b bg-purple-50">
           <div className="flex justify-between items-center">
             <h2 className="text-sm sm:text-base font-semibold text-gray-800 flex items-center">
@@ -300,12 +300,12 @@ function F_G_Index() {
         <div className="p-4">
           {marketData ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-gray-50 p-3 rounded-lg transform transition-all hover:scale-[1.02]">
-                <div className="flex items-center mb-1">
+              <div className="bg-gray-50 hover:bg-purple-100 p-3 rounded-lg transform transition-all ">
+                <div className="flex items-center justify-center mb-1">
                   <DollarSign size={16} className="text-purple-600 mr-1" />
                   <div className="text-xs sm:text-sm text-gray-600 font-medium">Total Market Cap</div>
                 </div>
-                <div className="text-lg sm:text-xl font-bold flex items-center gap-1.5">
+                <div className="text-lg sm:text-xl font-semibold justify-center flex items-center gap-1.5">
                   ${formatLargeNumber(marketData.totalMarketCap)}
                   <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
                     marketData.marketCapChangePercentage24h >= 0 
@@ -318,29 +318,21 @@ function F_G_Index() {
                 </div>
               </div>
               
-              <div className="bg-gray-50 p-3 rounded-lg transform transition-all hover:scale-[1.02]">
-                <div className="flex items-center mb-1">
+              <div className="bg-gray-50 hover:bg-purple-100 p-3 rounded-lg transform transition-all ">
+                <div className="flex items-center justify-center mb-1">
                   <BarChart2 size={16} className="text-purple-600 mr-1" />
                   <div className="text-xs sm:text-sm text-gray-600 font-medium">24h Trading Volume</div>
                 </div>
-                <div className="text-lg sm:text-xl font-bold flex items-center gap-1.5">
+                <div className="text-lg sm:text-xl font-semibold flex justify-center items-center gap-1.5">
                   ${formatLargeNumber(marketData.totalVolume)}
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                    marketData.volumeChangePercentage24h >= 0 
-                      ? 'text-green-600 bg-green-50' 
-                      : 'text-red-600 bg-red-50'
-                  }`}>
-                    {marketData.volumeChangePercentage24h >= 0 ? '+' : ''}
-                    {Math.abs(marketData.volumeChangePercentage24h || 0).toFixed(2)}%
-                  </span>
                 </div>
               </div>
               
-              <div className="sm:col-span-2 bg-purple-50 p-3 rounded-lg">
-                <div className="flex items-center mb-1">
+              <div className="sm:col-span-2 bg-gray-50 hover:bg-purple-100 p-3 rounded-lg">
+                <div className="flex items-center justify-center mb-1">
                   <div className="text-xs sm:text-sm text-gray-700 font-medium">Market Sentiment</div>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-center ">
                   <div className={`flex items-center ${fngData.value < 50 ? 'text-red-600' : 'text-green-600'} text-xs sm:text-sm font-medium`}>
                     {fngData.value < 50 ? (
                       <ArrowDown size={16} className="mr-1" />
@@ -365,7 +357,7 @@ function F_G_Index() {
       </div>
 
       {/* Trending Coins Card */}
-      <div className="md:col-span-3 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+      <div className="md:col-span-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
         <div className="p-3 border-b bg-purple-50">
           <div className="flex justify-between items-center">
             <h2 className="text-sm sm:text-base font-semibold text-gray-800 flex items-center">
@@ -378,22 +370,20 @@ function F_G_Index() {
           </div>
         </div>
         
-        <div className="max-h-[260px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300">
+        <div className="max-h-[220px] overflow-y-auto px-1 scrollbar-thin scrollbar-thumb-gray-300">
           {trendingCoins.length > 0 ? (
             <div className="divide-y divide-gray-100">
               {trendingCoins.slice(0, 5).map((coin, index) => (
                 <div key={index} className="p-3 flex items-center justify-between hover:bg-gray-50">
                   <div className="flex items-center gap-2">
-                    <div className="bg-purple-100 rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold text-purple-700">
+                    <div className="bg-yellow-300 rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold text-purple-800">
                       {index + 1}
                     </div>
-                    <img src={coin.item.small} alt={coin.item.name} className="w-5 h-5" />
-                    <div className="flex flex-col">
-                      <div className="text-xs sm:text-sm font-medium">{coin.item.symbol}</div>
-                      <div className="text-[10px] text-gray-500 truncate max-w-[80px]">{coin.item.name}</div>
-                    </div>
+                    <img src={coin.item.small} alt={coin.item.name} className="w-6 h-6" />
+                    <div className="text-[14px] text-black font-medium truncate max-w-[80px]">{coin.item.name}</div>
+                    <div className="text-[10px] sm:text-sm ">{coin.item.symbol}</div>
                   </div>
-                  <div className="flex flex-col items-end">
+                  <div className="flex items-center gap-2">
                     <div className="text-xs sm:text-sm font-medium">
                       ${typeof coin.priceData.current_price === 'number' 
                         ? coin.priceData.current_price.toLocaleString(undefined, {
@@ -402,7 +392,7 @@ function F_G_Index() {
                           })
                         : 'N/A'}
                     </div>
-                    <div className={`text-[10px] ${coin.priceData.price_change_24h >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className={`text-[12px] ${coin.priceData.price_change_24h >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {coin.priceData.price_change_24h >= 0 ? '↑' : '↓'} 
                       {Math.abs(coin.priceData.price_change_24h).toFixed(2)}%
                     </div>

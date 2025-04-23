@@ -6,7 +6,7 @@ function SubscriptionSection() {
   return (
     <section className="bg-gradient-to-r from-purple-700 to-purple-500">
       <div className="w-full">
-        <Link to="/upordown" className="block w-full">
+        <Link to="/predictkrypto" className="block w-full">
           <img 
             src={bannerImage} 
             alt="Predict Krypto Banner"

@@ -36,7 +36,7 @@ function FeaturesSection() {
           {features.map((feature, index) => (
             <div 
               key={index}
-              className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow flex flex-col items-center text-center"
+              className="bg-white p-4 sm:p-6 rounded-lg shadow-md shadow-purple-300 hover:shadow-lg hover:shadow-purple-400 transition-shadow flex flex-col items-center text-center"
             >
               <div className="mb-4 bg-purple-100 p-3 rounded-full">
                 {feature.icon}

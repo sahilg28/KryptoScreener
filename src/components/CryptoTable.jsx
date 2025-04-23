@@ -243,6 +243,9 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
                         Price
                       </th>
                       <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                        1h %
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                         24h %
                       </th>
                       <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
@@ -253,6 +256,9 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
                       </th>
                       <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                         Volume(24h)
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                        Circulating Supply
                       </th>
                       <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
@@ -279,9 +285,12 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
                             {renderPrice(coin.current_price)}
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-right hidden sm:table-cell">
-                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-lg ${
-                              coin.price_change_percentage_24h > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>
+                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-lg ${coin.price_change_percentage_1h_in_currency > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {coin.price_change_percentage_1h_in_currency ? coin.price_change_percentage_1h_in_currency.toFixed(2) : 0}%
+                            </span>
+                          </td>
+                          <td className="px-3 py-4 whitespace-nowrap text-xs sm:text-sm text-right hidden sm:table-cell">
+                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-lg ${coin.price_change_percentage_24h > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                               {coin.price_change_percentage_24h ? coin.price_change_percentage_24h.toFixed(2) : 0}%
                             </span>
                           </td>
@@ -297,6 +306,9 @@ function CryptoTable({ watchlist, addToWatchlist, removeFromWatchlist }) {
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 text-right hidden lg:table-cell">
                             {currentCurrency.symbol}{formatLargeNumber(coin.total_volume)}
+                          </td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 text-right hidden lg:table-cell">
+                            {formatLargeNumber(coin.circulating_supply)} {coin.symbol.toUpperCase()}
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex space-x-1 justify-center">

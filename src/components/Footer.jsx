@@ -9,7 +9,7 @@ function Footer() {
     { name: 'Home', path: '/', icon: <Home size={16} /> },
     { name: 'Trending Coins', path: '/trending', icon: <Flame size={16} /> },
     { name: 'Watchlist', path: '/watchlist', icon: <Star size={16} /> },
-    { name: 'PredictKrypto', path: '/upordown', icon: <Gamepad2 size={16} /> }
+    { name: 'PredictKrypto', path: '/predictkrypto', icon: <Gamepad2 size={16} /> }
   ];
   
   const resourceLinks = [

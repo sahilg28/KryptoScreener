@@ -17,7 +17,7 @@ function HeroSection() {
             <img 
               src={ksIcon} 
               alt="KryptoScreener Logo"
-              className="w-12 h-12 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-32 lg:h-32 object-contain rounded-full drop-shadow-[0_0_30px_rgba(255,215,0,0.4)] relative z-10 cursor-pointer hover:animate-spin-slow transition-transform duration-300"
+              className="w-12 h-12 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-32 lg:h-32 object-contain rounded-full drop-shadow-[0_0_30px_rgba(255,215,0,0.4)] relative z-10 cursor-pointer  hover:animate-spin-slow transition-transform duration-300"
             />
           </div>
           <span className="bg-gradient-to-r from-yellow-300 to-yellow-500 bg-clip-text text-transparent font-['Poppins']">

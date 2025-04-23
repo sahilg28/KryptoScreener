@@ -9,7 +9,7 @@ import Footer from './components/Footer';
 import F_G_Index from './components/F&G_Index';
 import Watchlist from './pages/Watchlist';
 import TrendingPage from './pages/TrendingPage';
-import UpOrDown from './pages/upordown';
+import UpOrDown from './pages/PredictKrypto';
 
 function App() {
   const [watchlist, setWatchlist] = useState([]);
@@ -55,7 +55,7 @@ function App() {
           } 
         />
         <Route path="/trending" element={<TrendingPage />} />
-        <Route path="/upordown" element={<UpOrDown />} />
+        <Route path="/predictkrypto" element={<UpOrDown />} />
       </Routes>
       <Footer />
     </div>

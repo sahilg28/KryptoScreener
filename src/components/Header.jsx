@@ -35,7 +35,7 @@ function Header() {
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+      <div className="container mx-auto px-6 py-3 flex justify-between items-center">
         <div className="flex items-center">
           <Link to="/" className="flex items-center gap-2">
             <img src={ksIcon} alt="KryptoScreener Logo" className="h-8 w-8 sm:h-10 sm:w-10 rounded-full" />
@@ -80,7 +80,7 @@ function Header() {
               <span className="font-medium">Watchlist</span>
             </Link>
             <Link 
-              to="/upordown" 
+              to="/predictkrypto" 
               className="flex w-full sm:w-auto items-center gap-2 py-2 sm:py-0 text-gray-700 hover:text-purple-700 transition-colors duration-300"
               tabIndex="0"
               aria-label="PredictKrypto"
