@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowUp, ArrowDown, Clock, Trophy, Wallet, Info, BarChart } from 'lucide-react';
+import { ArrowUp, ArrowDown, Clock, Trophy, Wallet, Info, BarChart, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useSelector } from 'react-redux';
 import useBinanceSocket from '../hooks/useBinanceSocket';
@@ -52,6 +52,7 @@ const CryptoPredictionGame = () => {
   // Refs
   const countdownInterval = useRef(null);
   const chartContainerRef = useRef(null);
+  const gameEndTimeRef = useRef(null);
   
   // WebSocket connection
   const { 
@@ -113,13 +114,12 @@ const CryptoPredictionGame = () => {
       } catch (error) {
         console.error('Error loading ongoing game:', error);
       }
-    } else {
-      resetGame();
     }
     
     return () => {
       if (countdownInterval.current) {
         clearInterval(countdownInterval.current);
+        countdownInterval.current = null;
       }
     };
   }, [isWalletConnected, walletAddress]);
@@ -145,6 +145,13 @@ const CryptoPredictionGame = () => {
       window.removeEventListener('walletDisconnected', handleWalletDisconnected);
     };
   }, []);
+
+  // Handle game end when timer reaches 0
+  useEffect(() => {
+    if (countdown === 0 && isGameActive) {
+      finishGame();
+    }
+  }, [countdown, isGameActive]);
   
   // Resume an ongoing game from localStorage
   const resumeOngoingGame = (gameData) => {
@@ -167,11 +174,13 @@ const CryptoPredictionGame = () => {
       const timeSlotValue = gameData.timeSlot || 1;
       
       setTimeSlot(timeSlotValue);
+      gameEndTimeRef.current = endTime;
       
       if (remainingTime > 0) {
         setCountdown(remainingTime);
         startCountdown(remainingTime);
       } else {
+        // If game should have ended already
         finishGame();
       }
     } catch (error) {
@@ -195,8 +204,14 @@ const CryptoPredictionGame = () => {
       toast.error('Cannot change time during an active prediction!');
       return;
     }
-    setTimeSlot(parseInt(value, 10));
-    setCountdown(parseInt(value, 10) * 60);
+    const newTimeSlot = parseInt(value, 10);
+    setTimeSlot(newTimeSlot);
+    setCountdown(newTimeSlot * 60);
+  };
+
+  // Handle wallet connection request
+  const handleConnectWallet = () => {
+    window.dispatchEvent(new CustomEvent('requestWalletConnect'));
   };
   
   // Start countdown timer
@@ -206,47 +221,45 @@ const CryptoPredictionGame = () => {
     // Clear any existing interval
     if (countdownInterval.current) {
       clearInterval(countdownInterval.current);
+      countdownInterval.current = null;
     }
     
+    // Set the absolute end time for synchronization
+    const endTime = Date.now() + (seconds * 1000);
+    gameEndTimeRef.current = endTime;
+    
+    // Start a new interval that checks the actual time remaining
     countdownInterval.current = setInterval(() => {
-      setCountdown(prevCountdown => {
-        const newCountdown = prevCountdown - 1;
-        
-        // Update remaining time in localStorage
+      const now = Date.now();
+      const timeLeft = Math.max(0, Math.floor((gameEndTimeRef.current - now) / 1000));
+      
+      setCountdown(timeLeft);
+      
+      // Update remaining time in localStorage
+      try {
         const ongoingGame = JSON.parse(localStorage.getItem('ongoingGame') || '{}');
         if (ongoingGame && ongoingGame.crypto) {
           localStorage.setItem('ongoingGame', JSON.stringify({
             ...ongoingGame,
-            remainingTime: newCountdown
+            remainingTime: timeLeft
           }));
         }
-        
-        if (newCountdown <= 0) {
-          // Stop the interval
-          clearInterval(countdownInterval.current);
-          countdownInterval.current = null;
-          
-          // Use setTimeout to ensure state updates before finishing the game
-          setTimeout(() => {
-            // Double check the game is still active before finishing
-            if (isGameActive) {
-              console.log('Countdown reached zero, finishing game');
-              finishGame();
-            }
-          }, 100);
-          
-          return 0;
-        }
-        
-        return newCountdown;
-      });
+      } catch (error) {
+        console.error('Error updating countdown in localStorage:', error);
+      }
+      
+      // Stop interval if countdown reaches 0
+      if (timeLeft <= 0) {
+        clearInterval(countdownInterval.current);
+        countdownInterval.current = null;
+      }
     }, 1000);
   };
   
   // Make prediction
   const makePrediction = (direction) => {
     if (!isWalletConnected) {
-      window.dispatchEvent(new CustomEvent('requestWalletConnect'));
+      handleConnectWallet();
       return;
     }
     
@@ -255,33 +268,35 @@ const CryptoPredictionGame = () => {
       return;
     }
     
-    // Use current price from Binance socket or fallback
-    const currentPriceValue = currentPrice || 
-                             (selectedCrypto === 'BTC' ? 35000 : 
-                              selectedCrypto === 'ETH' ? 1900 : 
-                              selectedCrypto === 'SOL' ? 140 : 
-                              selectedCrypto === 'BNB' ? 560 : 
-                              selectedCrypto === 'POL' ? 0.7 : 100);
+    // Check if we have live price data
+    if (!isConnected || !currentPrice) {
+      toast.error('Cannot start prediction without live price data. Please wait for connection to be established.');
+      return;
+    }
     
     setIsLoading(true);
     
     try {
-      setInitialPrice(currentPriceValue);
+      setInitialPrice(currentPrice);
       setPrediction(direction);
       setGameState('predicting');
       setIsGameActive(true);
       
       const now = Date.now();
       const seconds = timeSlot * 60;
+      const endTime = now + (seconds * 1000);
+      
+      // Save this for synchronization
+      gameEndTimeRef.current = endTime;
       
       // Save game state to local storage
       localStorage.setItem('ongoingGame', JSON.stringify({
         crypto: selectedCrypto,
         timeSlot: timeSlot,
         prediction: direction,
-        initialPrice: currentPriceValue,
+        initialPrice: currentPrice,
         startTime: now,
-        endTime: now + (seconds * 1000)
+        endTime: endTime
       }));
       
       // Toast notification
@@ -301,8 +316,17 @@ const CryptoPredictionGame = () => {
   
   // Finish the game
   const finishGame = () => {
-    // Don't proceed if game is not active or we don't have initial data
+    // Don't proceed if game is not active or missing initial data
     if (!isGameActive || !initialPrice) {
+      console.log('Cannot finish game: game not active or missing initial price');
+      resetGame();
+      return;
+    }
+
+    // Don't proceed if we don't have current live price data
+    if (!currentPrice) {
+      console.log('Cannot finish game: no current price available');
+      toast.error('Unable to determine game outcome - no live price data available. Try again later.');
       resetGame();
       return;
     }
@@ -310,23 +334,16 @@ const CryptoPredictionGame = () => {
     try {
       console.log('Finishing game with state:', { initialPrice, prediction, currentPrice });
       
-      // Use current price from Binance socket or fallback to a reasonable value
-      const finalPriceValue = currentPrice || 
-                              (initialPrice * (1 + (Math.random() * 0.02 - 0.01)));
-      
-      // Store final price in state
-      setFinalPrice(finalPriceValue);
-      
-      // Calculate price change & determine outcome
-      const priceChange = ((finalPriceValue - initialPrice) / initialPrice) * 100;
-      const priceWentUp = finalPriceValue > initialPrice;
-      const won = (prediction === 'up' && priceWentUp) || (prediction === 'down' && !priceWentUp);
-      
       // First mark the game as not active to prevent any race conditions
       setIsGameActive(false);
       
-      // Clear ongoing game from storage
-      localStorage.removeItem('ongoingGame');
+      // Store final price in state
+      setFinalPrice(currentPrice);
+      
+      // Calculate price change & determine outcome
+      const priceChange = ((currentPrice - initialPrice) / initialPrice) * 100;
+      const priceWentUp = currentPrice > initialPrice;
+      const won = (prediction === 'up' && priceWentUp) || (prediction === 'down' && !priceWentUp);
       
       // Update game state to 'won' or 'lost'
       setGameState(won ? 'won' : 'lost');
@@ -339,6 +356,9 @@ const CryptoPredictionGame = () => {
       
       // Update stats state
       setStats(newStats);
+      
+      // Clear ongoing game from storage
+      localStorage.removeItem('ongoingGame');
       
       // Save updated stats to localStorage with wallet key
       const addressToUse = walletAddress || savedWalletAddress;
@@ -383,19 +403,6 @@ const CryptoPredictionGame = () => {
     }
   };
   
-  // Format price for display
-  const formatPriceDisplay = (price) => {
-    if (!price) return '0.00';
-    
-    if (price > 1000) {
-      return price.toLocaleString('en-US', { maximumFractionDigits: 2 });
-    } else if (price > 1) {
-      return price.toLocaleString('en-US', { maximumFractionDigits: 2 });
-    } else {
-      return price.toLocaleString('en-US', { maximumFractionDigits: 4 });
-    }
-  };
-  
   // Load confetti animation
   const loadConfetti = () => {
     try {
@@ -407,6 +414,13 @@ const CryptoPredictionGame = () => {
     } catch (error) {
       console.error('Error showing confetti:', error);
     }
+  };
+
+  // Format time remaining as MM:SS
+  const formatTimeRemaining = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   // Render component UI
@@ -520,6 +534,13 @@ const CryptoPredictionGame = () => {
             </div>
           </div>
           
+          {!isConnected && (
+            <div className="flex items-center justify-center p-4 bg-red-50 text-red-600 rounded-lg mb-4">
+              <AlertCircle size={18} className="mr-2" />
+              <span>Waiting for live price data. Please wait...</span>
+            </div>
+          )}
+          
           {/* Chart */}
           <div ref={chartContainerRef} className="h-[300px] sm:h-[400px]">
             <TradingViewWidget symbol={selectedPair.tradingViewSymbol} />
@@ -534,7 +555,7 @@ const CryptoPredictionGame = () => {
             <button
               onClick={() => makePrediction('up')}
               className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3 sm:py-4 rounded-lg text-sm sm:text-base font-semibold transition-all"
-              disabled={isLoading}
+              disabled={isLoading || !isConnected || !currentPrice}
             >
               <ArrowUp size={24} className="" />
               {isLoading ? 'Loading...' : 'Price Will Go UP!'}
@@ -542,7 +563,7 @@ const CryptoPredictionGame = () => {
             <button
               onClick={() => makePrediction('down')}
               className="flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white py-3 sm:py-4 rounded-lg text-sm sm:text-base font-semibold transition-all "
-              disabled={isLoading}
+              disabled={isLoading || !isConnected || !currentPrice}
             >
               <ArrowDown size={24} className="" />
               {isLoading ? 'Loading...' : 'Price Will Go DOWN!'}
@@ -561,7 +582,7 @@ const CryptoPredictionGame = () => {
             </div>
             
             <div className="text-3xl sm:text-4xl font-bold my-2 text-purple-800">
-              {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
+              {formatTimeRemaining(countdown)}
             </div>
             
             <div className="w-full max-w-md bg-gray-200 rounded-full h-3 mb-4">
@@ -589,7 +610,12 @@ const CryptoPredictionGame = () => {
                     : currentPrice < initialPrice 
                     ? 'text-red-600' 
                     : ''
-                }`}>${currentPrice?.toFixed(2)}</span>
+                }`}>
+                  ${currentPrice ? currentPrice.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: currentPrice > 1000 ? 2 : 6
+                  }) : 'Waiting...'}
+                </span>
               </div>
             </div>
           </div>

@@ -1,20 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createSocket, formatPrice, TRADING_PAIRS } from '../services/binanceSocket';
 
-// Fallback values for when the connection isn't available
-const FALLBACK_PRICES = {
-  btc: 35000,
-  eth: 1900,
-  sol: 140,
-  ada: 0.45,
-  dot: 6.8,
-  doge: 0.12,
-  avax: 35,
-  link: 15,
-  matic: 0.75,
-  bnb: 560,
-};
-
 /**
  * Custom hook for managing Binance WebSocket connections
  * Provides real-time price data for a specified cryptocurrency
@@ -46,12 +32,6 @@ const useBinanceSocket = (cryptoSymbol) => {
     return Math.min(Math.pow(2, attempts) * 1000, 30000);
   };
 
-  // Get fallback price for current symbol
-  const getFallbackPrice = () => {
-    const symbol = symbolRef.current.toLowerCase();
-    return FALLBACK_PRICES[symbol] || 100; // Default fallback if not found
-  };
-
   useEffect(() => {
     // Clean up existing connection
     if (socketRef.current) {
@@ -69,13 +49,7 @@ const useBinanceSocket = (cryptoSymbol) => {
       reconnectTimeoutRef.current = null;
     }
     
-    // Set initial price from fallback
-    const fallbackPrice = getFallbackPrice();
-    if (!price) {
-      setPrice(fallbackPrice);
-    }
-    
-    // Reset state but keep the price
+    // Reset state
     setConnectionError(null);
     setIsPriceUp(false);
     setIsPriceDown(false);
@@ -188,9 +162,14 @@ const useBinanceSocket = (cryptoSymbol) => {
     };
   }, [cryptoSymbol]);
   
+  // Format the price if available, otherwise return a placeholder
+  const formattedPrice = price 
+    ? formatPrice(price)
+    : "Connecting...";
+  
   return {
-    price: price || getFallbackPrice(),
-    formattedPrice: formatPrice(price || getFallbackPrice()),
+    price, // Return null when no price is available
+    formattedPrice,
     prevPrice,
     isPriceUp,
     isPriceDown,
