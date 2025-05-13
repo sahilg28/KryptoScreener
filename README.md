@@ -83,10 +83,10 @@
 ### 🎮 PredictKrypto - Price Prediction Game
 
 **Before Wallet Connect**  
-![Game page](src/assets/predictkrypto1.png) 
+![Game page](src/assets/Predictkrypto1.png) 
 
 **After Wallet Connected**  
-![Game page](src/assets/predictkrypto2.png)
+![Game page](src/assets/PredictKrypto2.png)
 
 - Connect Solana Phantom Wallet to unlock game
 - Select coin (BTC, ETH, SOL, BNB, MATIC)
