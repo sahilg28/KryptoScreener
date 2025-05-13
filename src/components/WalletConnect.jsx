@@ -261,8 +261,7 @@ function WalletConnect() {
             className="w-full sm:w-auto text-xs sm:text-sm px-2 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium transition-all"
             aria-label="Disconnect wallet"
             tabIndex="0"
-          >
-            Disconnect
+          >Disconnect
           </button>
         </div>
       )}

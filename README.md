@@ -1,152 +1,154 @@
-# KryptoScreener 🚀
+# 🚀 KryptoScreener
 
-Welcome to [KryptoScreener](https://kryptoscreener.vercel.app/), your ultimate tool for real-time cryptocurrency tracking and analysis! 📈
+**KryptoScreener** is a powerful, interactive crypto market dashboard that not only tracks prices but also lets users test their intuition with a fun price prediction game. With real-time data, personalized watchlists, and a Solana wallet-based experience, this app is your gateway to understanding and navigating the volatile world of crypto.
 
-## Description 📝
+🌐 Live Link : [kryptoscreener.vercel.app](https://kryptoscreener.vercel.app/)
 
-KryptoScreener offers a dynamic and user-friendly platform to monitor cryptocurrency markets. Track live prices, explore market trends, and manage your personal watchlist of favorite cryptocurrencies. Whether you're a seasoned trader or a crypto newbie, KryptoScreener provides the tools you need to make informed decisions.
+---
 
-## Technology Used 🛠️
+## 📌 Features
 
-- **ReactJS**: For building a responsive and interactive UI.
-- **TailwindCSS**: For sleek, mobile-first designs.
-- **Lucide Icons**: Enhancing UI with expressive icons.
-- **Vercel**: For seamless hosting and superior performance.
+- 🔄 **Live Market Data** via CoinGecko & Binance WebSocket
+- 📊 **Trending Coins** — Discover top coins searched in the last 3 hours
+- ⭐ **Personal Watchlist** — Stored securely in local storage
+- 🎮 **PredictKrypto Game** — Predict short-term market movement using live data (Wallet-gated)
+- 🔐 **Solana Phantom Wallet Integration** — Connect your wallet to play and track stats
+- 🧠 **Fear & Greed Index** — Sentiment indicator from alternative.me
+- 🌐 **Currency Conversion** — View coin prices in local fiat
+- 🔍 **Search Functionality** — Find and track over 1,000+ cryptocurrencies
+- 📱 **Mobile Responsive UI**
+- 📈 **TradingView Widgets & Recharts** — Beautiful and informative charting
 
-## Installation 📦
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **React.js** - For building the user interface.
+- **Tailwind CSS** - For responsive, utility-first CSS styling.
+- **Redux** - For managing the state of the application.
+- **LocalStorage** - For saving the user's watchlist and game data locally.
+
+### Realtime Data
+- **CoinGecko API** - Provides real-time cryptocurrency market data.
+- **Binance WebSocket** - Real-time updates on cryptocurrency price changes.
+
+### Analytics / Charts
+- **TradingView Widgets** - For embedding live market charts.
+- **Recharts.js** - For creating beautiful charts and data visualizations.
+- **Fear & Greed Index API** - Displays market sentiment based on current data.
+
+### Backend (Minimal)
+- **Node.js** - For backend logic and handling requests.
+
+### Deployment
+- **Vercel** - For hosting and deploying the application.
+
+
+---
+
+## 🌍 Pages Overview
+
+### 🏠 Home Page
+![Home page](src/assets/Homepage.png)
+
+- Welcome message and project tagline:  
+  *"Read the Trends. Play the Game. Rule the Market."*
+- Market overview: market cap, trading volume
+- Fear & Greed Index with current value
+- Trending Coins list (Top 5)
+- Real-time table of all cryptocurrencies
+- Search bar + fiat currency toggle 
+
+---
+
+### 📈 Trending Page
+![Trending page](src/assets/Trendingpage.png)
+
+- Shows top-trending cryptocurrencies (based on recent user interest)
+- Updated every few hours via CoinGecko stats
+- Clean tabular display with market data for each coin
+
+---
+
+### ⭐ Watchlist Page
+![Watchlist page](src/assets/Watchlistpage.png)
+
+- Custom watchlist saved in browser using LocalStorage
+- Real-time updates on selected coins
+- Quick remove/add functionality
+
+---
+
+### 🎮 PredictKrypto - Price Prediction Game
+
+**Before Wallet Connect**  
+![Game page](src/assets/predictkrypto1.png) 
+
+**After Wallet Connected**  
+![Game page](src/assets/predictkrypto2.png)
+
+- Connect Solana Phantom Wallet to unlock game
+- Select coin (BTC, ETH, SOL, BNB, MATIC)
+- Choose prediction interval (1, 3, 5, 10 minutes)
+- Live chart from TradingView
+- Make UP/DOWN prediction and see results
+- Tracks your total wins/losses (stats saved post wallet auth)
+
+**⚠️ Note:**  
+Gameplay is **not available** unless the Phantom wallet is successfully connected.
+
+---
+
+## 📦 Installation
 
 To get started with KryptoScreener locally, follow these steps:
 
-1. Clone the repository:
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/sahilg28/KryptoScreener.git
    ```
-2. Navigate to the project directory:
+
+2. **Navigate to the project directory:**
    ```bash
    cd KryptoScreener
    ```
-3. Install dependencies:
+
+3. **Install dependencies:**
    ```bash
    npm install
    ```
-4. Start the development server:
+
+4. **Start the development server:**
    ```bash
    npm run dev
    ```
 
-## Give Us a Star! ⭐
+---
 
-If you find KryptoScreener helpful, please consider giving us a star on [GitHub](https://github.com/sahilg28/KryptoScreener).
+## ⭐ Give Us a Star!
 
-# KryptoScreener Mobile Responsive Implementation
+If you find **KryptoScreener** helpful, please consider giving us a ⭐ on [GitHub](https://github.com/sahilg28/KryptoScreener).  
+Your support means a lot and motivates us to keep building!
 
-This document summarizes the responsive design implementation for KryptoScreener to ensure it works well on mobile devices.
+---
 
-## Responsive Design Approach
+## 🤝 Contributing
 
-KryptoScreener uses the following responsive design techniques:
+Contributions are welcome! Feel free to fork the repo, open issues, or submit a pull request.
 
-1. **Mobile-first approach** with Tailwind CSS
-2. **Responsive breakpoints** using Tailwind's `sm`, `md`, and `lg` modifiers
-3. **Flexible layouts** using Grid and Flexbox
-4. **Optimized typography** that scales based on screen size
-5. **Hidden elements** on mobile when needed to preserve space
-6. **Touch-friendly** button sizes and interactive elements
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## Key Components Made Responsive
+Make sure your code adheres to the project's coding standards and is well-tested.
 
-### Header & Navigation
-- Mobile hamburger menu that expands on click
-- Stacked mobile navigation with full-width items
-- Resized logo and text for small screens
-- Optimized wallet connection button for mobile
+---
 
-### Homepage
-- Resized hero section with appropriate typography scaling
-- Features section displays in a single column on mobile
-- Reduced padding and margins on smaller screens
-- Optimized card layouts for mobile viewing
+## 🛡️ License
 
-### CryptoTable
-- Table columns intelligently hidden on mobile (preserving essential data)
-- Responsive search and filter controls
-- Mobile-optimized pagination controls
-- Card-style presentation for mobile users
+This project is licensed under **All Rights Reserved © 2025 Sahil Gupta**.  
+You may not use, copy, modify, or distribute this code without explicit permission.
 
-### Fear & Greed Index
-- Resized data visualization elements
-- Responsive grid layout for market stats
-- Optimized trending coins display for mobile
-- Readable typography at all screen sizes
-
-### CoinDetailsModal
-- Full-screen modal on mobile with appropriate padding
-- Responsive chart sizing
-- Stacked data presentation on small screens
-- Touch-friendly close button
-
-### Watchlist Page
-- Responsive table implementation showing critical data on mobile
-- Clear touch targets for remove action
-- Properly scaled empty state
-
-### TrendingPage
-- Card grid layout that adapts to screen width
-- Responsive typography hierarchy
-- Optimized coin information display for small screens
-
-### PredictKrypto Game
-- Full responsive implementation with appropriate sizing
-- Mobile-friendly prediction buttons
-- Responsive chart and controls
-- Clear game state visualization at all screen sizes
-
-## Utility Classes Added
-
-The following utility classes were added to enhance responsive behavior:
-
-```css
-/* Responsive typography */
-.text-responsive-xs { @apply text-xs sm:text-sm; }
-.text-responsive-sm { @apply text-sm sm:text-base; }
-.text-responsive-base { @apply text-base sm:text-lg; }
-.text-responsive-lg { @apply text-lg sm:text-xl md:text-2xl; }
-.text-responsive-xl { @apply text-xl sm:text-2xl md:text-3xl; }
-
-/* Responsive container padding */
-.container-responsive { @apply px-3 sm:px-4 md:px-6; }
-
-/* Responsive layouts */
-.flex-responsive-col { @apply flex flex-col sm:flex-row; }
-.flex-responsive-wrap { @apply flex flex-wrap gap-2; }
-.grid-responsive-1 { @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4; }
-.grid-responsive-2 { @apply grid grid-cols-1 sm:grid-cols-2 gap-4; }
-
-/* Mobile specific fixes */
-@media (max-width: 640px) {
-  .tooltip { max-width: 200px; }
-  .truncate-mobile { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
-  .chart-container { height: 200px !important; }
-}
-```
-
-## Mobile Testing Guidelines
-
-When testing the responsive implementation, pay attention to:
-
-1. Navigation usability on small screens
-2. Text readability at all screen sizes
-3. Touch target sizes (buttons, links, interactive elements)
-4. Content flow and hierarchy
-5. Visual elements scaling appropriately
-6. Load time optimization for mobile networks
-
-## Future Improvements
-
-Potential future improvements for mobile:
-
-1. Implement native-like bottom navigation for frequently accessed features
-2. Add pull-to-refresh functionality on data-heavy pages
-3. Implement lazy loading for improved mobile performance
-4. Add offline capabilities for core functionality
-5. Optimize images further for mobile data considerations

@@ -54,4 +54,4 @@ const UpOrDown = () => {
   );
 };
 
-export default UpOrDown; 
+export default UpOrDown;
